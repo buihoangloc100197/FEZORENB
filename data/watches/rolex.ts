@@ -1,0 +1,153 @@
+import { Watch } from './types';
+
+export const ROLEX_WATCHES: Watch[] = [
+  {
+    id: 'rolex-cosmograph-daytona-126500ln',
+    name: 'Rolex Cosmograph Daytona',
+    subtitle: 'Ref. 126500LN • Thép Oystersteel & Vành Gốm Cerachrom Đen',
+    category: 'horology',
+    categoryLabel: 'Đồng Hồ Rolex',
+    brand: 'Rolex',
+    reference: '126500LN',
+    collectionName: 'Cosmograph Daytona',
+    price: 34500,
+    originalPrice: 38000,
+    currency: '$',
+    caseSize: '40mm',
+    caseThickness: '11.9mm',
+    caseMaterial: 'Oystersteel 904L chống ăn mòn siêu cấp',
+    bezelMaterial: 'Cerachrom gốm công nghệ cao phủ platin qua công nghệ PVD',
+    dialDescription: 'Mặt số sơn mài trắng tuyết với 3 mặt số phụ viền đen (Panda Dial)',
+    braceletType: 'Oyster 3 mối nối với khóa an toàn Oysterlock & giãn tiện ích Easylink 5mm',
+    movementType: 'Automatic',
+    caliber: 'Calibre 4131 In-house Superlative Chronometer',
+    powerReserve: '72 giờ',
+    waterResistance: '100m / 330 feet',
+    complications: ['Chronograph'],
+    jewelsCount: 44,
+    frequency: '28,800 vph (4 Hz)',
+    images: [
+      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85',
+      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85'
+    ],
+    description: 'Biểu tượng tối thượng của đường đua tốc độ Daytona International Speedway. Thế hệ mới trang bị bộ máy Calibre 4131 đột phá cùng cơ cấu thoát Chronergy và rô-to khoét rỗng tinh xảo.',
+    details: [
+      'Mã tham chiếu quốc tế: Ref. 126500LN-0001',
+      'Thang đo tốc độ Tachymetric khắc chìm trên vành Cerachrom',
+      'Dây tóc Parachrom xanh thuận từ tính và bộ giảm sốc Paraflex hiệu suất cao',
+      'Độ chính xác: -2/+2 giây/ngày sau khi lắp vỏ (Chứng nhận COSC & Rolex)'
+    ],
+    specs: {
+      'Thương hiệu': 'Rolex (Geneva, Thụy Sĩ)',
+      'Bộ máy': 'Calibre 4131 Perpetual Automatic Chronograph',
+      'Đường kính vỏ': '40 mm',
+      'Chất liệu vỏ': 'Oystersteel 904L',
+      'Dự trữ cót': 'Xấp xỉ 72 giờ',
+      'Kháng từ & Chấn động': 'Dây tóc Parachrom & Đệm Paraflex',
+      'Bảo hành': '5 năm quốc tế chính hãng Rolex kèm thẻ NFC'
+    },
+    tag: 'Limited Edition',
+    isNew: true,
+    inStock: true,
+    rating: 5.0,
+    reviewsCount: 84
+  },
+  {
+    id: 'rolex-submariner-date-126610lv',
+    name: 'Rolex Submariner Date "Starbucks"',
+    subtitle: 'Ref. 126610LV • Vành Cerachrom Xanh Lục Hoàng Gia & Mặt Đen',
+    category: 'horology',
+    categoryLabel: 'Đồng Hồ Rolex',
+    brand: 'Rolex',
+    reference: '126610LV',
+    collectionName: 'Submariner',
+    price: 16800,
+    originalPrice: 18500,
+    currency: '$',
+    caseSize: '41mm',
+    caseThickness: '12.3mm',
+    caseMaterial: 'Oystersteel 904L',
+    bezelMaterial: 'Cerachrom gốm xanh lục xoay đơn hướng 60 phút chia vạch mạ platinum',
+    dialDescription: 'Mặt số đen bóng với cọc số phủ dạ quang Chromalight phát quang xanh lam',
+    braceletType: 'Oystersteel với hệ thống trượt Glidelock mở rộng đến 20mm',
+    movementType: 'Automatic',
+    caliber: 'Calibre 3235 Perpetual',
+    powerReserve: '70 giờ',
+    waterResistance: '300m / 1,000 feet',
+    complications: ['Diver / Lặn Biển'],
+    jewelsCount: 31,
+    frequency: '28,800 vph (4 Hz)',
+    images: [
+      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85',
+      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+    ],
+    description: 'Chiếc đồng hồ lặn biển chuẩn mực của nhân loại từ năm 1953. Phiên bản "Starbucks" 41mm kết hợp vành gốm xanh lục đặc trưng và núm vặn khóa ba tầng Triplock chịu áp suất biển sâu phi thường.',
+    details: [
+      'Mã tham chiếu: Ref. 126610LV',
+      'Khả năng chống nước ở độ sâu 300 mét (1,000 feet)',
+      'Thấu kính lúp Cyclops phóng đại ngày ở vị trí 3 giờ',
+      'Dạ quang độc quyền Chromalight phát sáng liên tục hơn 8 giờ dưới đáy biển'
+    ],
+    specs: {
+      'Thương hiệu': 'Rolex (Geneva, Thụy Sĩ)',
+      'Bộ máy': 'Calibre 3235 Automatic',
+      'Đường kính': '41 mm',
+      'Vỏ & Dây': 'Oystersteel 904L',
+      'Dự trữ năng lượng': '70 giờ',
+      'Khóa cài': 'Rolex Glidelock mở rộng lặn biển'
+    },
+    tag: 'Curated',
+    inStock: true,
+    rating: 4.9,
+    reviewsCount: 62
+  },
+  {
+    id: 'rolex-day-date-40-president-228238',
+    name: 'Rolex Day-Date 40 "President"',
+    subtitle: 'Ref. 228238 • Vàng Vàng 18K Nguyên Khối & Vành Khía Rãnh Fluted',
+    category: 'horology',
+    categoryLabel: 'Đồng Hồ Rolex',
+    brand: 'Rolex',
+    reference: '228238',
+    collectionName: 'Day-Date 40',
+    price: 48500,
+    currency: '$',
+    caseSize: '40mm',
+    caseThickness: '12.0mm',
+    caseMaterial: 'Vàng vàng Yellow Gold 18K đúc độc quyền xưởng luyện kim Rolex',
+    bezelMaterial: 'Vàng 18K khía rãnh Fluted phản chiếu ánh sáng đa góc',
+    dialDescription: 'Mặt số chải tia vàng Champagne với cọc số La Mã chạm khắc nổi',
+    braceletType: 'Dây President 3 mối nối tròn bán nguyệt tích hợp ống lót gốm Ceramic',
+    movementType: 'Automatic',
+    caliber: 'Calibre 3255 In-house',
+    powerReserve: '70 giờ',
+    waterResistance: '100m / 330 feet',
+    complications: ['Perpetual Calendar / Lịch Vạn Niên'],
+    jewelsCount: 31,
+    frequency: '28,800 vph (4 Hz)',
+    images: [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85',
+      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+    ],
+    description: 'Chiếc đồng hồ của các nguyên thủ quốc gia và nhà lãnh đạo kiệt xuất. Chỉ được chế tác độc quyền từ kim loại quý (Vàng 18K hoặc Platinum), hiển thị đầy đủ thứ trong tuần bằng chữ tại vị trí 12 giờ.',
+    details: [
+      'Mã tham chiếu: Ref. 228238-0006',
+      'Đĩa lịch thứ hiển thị 26 ngôn ngữ quốc tế',
+      'Dây đeo President biểu tượng sang trọng vượt thời gian',
+      'Vỏ chống nước Oyster nguyên khối bảo vệ tối đa bộ máy'
+    ],
+    specs: {
+      'Thương hiệu': 'Rolex (Geneva, Thụy Sĩ)',
+      'Bộ máy': 'Calibre 3255 Perpetual Movement',
+      'Chất liệu': 'Vàng vàng 18K nguyên khối (18K Yellow Gold)',
+      'Kích thước': '40 mm',
+      'Dự trữ cót': '70 giờ',
+      'Khóa gập': 'Crownclasp ẩn tinh tế'
+    },
+    tag: 'Heritage',
+    inStock: true,
+    rating: 5.0,
+    reviewsCount: 47
+  }
+];
