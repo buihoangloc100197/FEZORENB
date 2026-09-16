@@ -27,8 +27,9 @@ export const AUDEMARS_PIGUET_WATCHES: Watch[] = [
     jewelsCount: 33,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/audemars-piguet-royal-oak-jumbo-16202st/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/audemars-piguet-royal-oak-jumbo-16202st/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/audemars-piguet-royal-oak-jumbo-16202st/image-3.jpg'
     ],
     description: 'Chiếc đồng hồ khai sinh ra kỷ nguyên đồng hồ thể thao xa xỉ của nhân loại vào năm 1972 dưới ngòi bút của huyền thoại Gérald Genta. Thế hệ kỷ niệm 50 năm trang bị bộ máy Calibre 7121 siêu mỏng với rô-to kỷ niệm bằng vàng hồng 22K.',
     details: [
@@ -75,8 +76,9 @@ export const AUDEMARS_PIGUET_WATCHES: Watch[] = [
     jewelsCount: 40,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/audemars-piguet-royal-oak-offshore-26420ti/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/audemars-piguet-royal-oak-offshore-26420ti/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/audemars-piguet-royal-oak-offshore-26420ti/image-3.jpg'
     ],
     description: 'Phiên bản cơ bắp, táo bạo của gia đình Royal Oak. Bộ bấm giờ Flyback cho phép thiết lập lại thời gian đo ngay lập tức chỉ với một lần ấn mà không cần dừng trước.',
     details: [

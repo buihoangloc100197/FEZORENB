@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 
@@ -7,8 +7,23 @@ interface ZorenbLogoProps {
   className?: string;
 }
 
+// Precomputed exact coordinates for 12 clock ticks to prevent SSR / Client float hydration mismatch
+const TICKS = [
+  { key: 0, x1: 40, y1: 13, x2: 40, y2: 9, strokeWidth: 2, opacity: 1 },
+  { key: 1, x1: 54.25, y1: 15.32, x2: 55.25, y2: 13.59, strokeWidth: 1, opacity: 0.55 },
+  { key: 2, x1: 64.68, y1: 25.75, x2: 66.41, y2: 24.75, strokeWidth: 1, opacity: 0.55 },
+  { key: 3, x1: 67, y1: 40, x2: 71, y2: 40, strokeWidth: 2, opacity: 1 },
+  { key: 4, x1: 64.68, y1: 54.25, x2: 66.41, y2: 55.25, strokeWidth: 1, opacity: 0.55 },
+  { key: 5, x1: 54.25, y1: 64.68, x2: 55.25, y2: 66.41, strokeWidth: 1, opacity: 0.55 },
+  { key: 6, x1: 40, y1: 67, x2: 40, y2: 71, strokeWidth: 2, opacity: 1 },
+  { key: 7, x1: 25.75, y1: 64.68, x2: 24.75, y2: 66.41, strokeWidth: 1, opacity: 0.55 },
+  { key: 8, x1: 15.32, y1: 54.25, x2: 13.59, y2: 55.25, strokeWidth: 1, opacity: 0.55 },
+  { key: 9, x1: 13, y1: 40, x2: 9, y2: 40, strokeWidth: 2, opacity: 1 },
+  { key: 10, x1: 15.32, y1: 25.75, x2: 13.59, y2: 24.75, strokeWidth: 1, opacity: 0.55 },
+  { key: 11, x1: 25.75, y1: 15.32, x2: 24.75, y2: 13.59, strokeWidth: 1, opacity: 0.55 },
+];
+
 export default function ZorenbLogo({ size = 40, className = "" }: ZorenbLogoProps) {
-  const ticks = Array.from({ length: 12 }, (_, i) => i);
   return (
     <svg
       width={size}
@@ -45,25 +60,19 @@ export default function ZorenbLogo({ size = 40, className = "" }: ZorenbLogoProp
       <circle cx="40" cy="40" r="38" fill="url(#goldRingZ)" />
       <circle cx="40" cy="40" r="33" fill="url(#bgCircleZ)" />
       <circle cx="40" cy="40" r="33" fill="none" stroke="url(#goldFillZ)" strokeWidth="0.8" />
-      {ticks.map((i) => {
-        const angle = (i * 30 - 90) * (Math.PI / 180);
-        const isMain = i % 3 === 0;
-        const r1 = isMain ? 27 : 28.5;
-        const r2 = isMain ? 31 : 30.5;
-        return (
-          <line
-            key={i}
-            x1={40 + r1 * Math.cos(angle)}
-            y1={40 + r1 * Math.sin(angle)}
-            x2={40 + r2 * Math.cos(angle)}
-            y2={40 + r2 * Math.sin(angle)}
-            stroke="#d4af37"
-            strokeWidth={isMain ? 2 : 1}
-            strokeLinecap="round"
-            opacity={isMain ? 1 : 0.55}
-          />
-        );
-      })}
+      {TICKS.map((t) => (
+        <line
+          key={t.key}
+          x1={t.x1}
+          y1={t.y1}
+          x2={t.x2}
+          y2={t.y2}
+          stroke="#d4af37"
+          strokeWidth={t.strokeWidth}
+          strokeLinecap="round"
+          opacity={t.opacity}
+        />
+      ))}
       <text
         x="40"
         y="52"

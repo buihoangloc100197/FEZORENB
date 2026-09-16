@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
       avatarUrl: avatarUrl || currentUser.avatarUrl,
     };
 
-    if (isSupabaseConfigured) {
-      await supabase
+    if (isSupabaseConfigured && currentUser.id && !currentUser.id.startsWith("usr_admin_master")) {
+      const adminClient = getServiceSupabase();
+      await adminClient
         .from("profiles")
         .update({
           full_name: updatedUser.fullName,
           phone: updatedUser.phone,
           avatar_url: updatedUser.avatarUrl,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", currentUser.id);
     }

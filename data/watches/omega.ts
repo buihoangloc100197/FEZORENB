@@ -27,8 +27,9 @@ export const OMEGA_WATCHES: Watch[] = [
     jewelsCount: 26,
     frequency: '21,600 vph (3 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/omega-speedmaster-moonwatch-professional/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/omega-speedmaster-moonwatch-professional/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/omega-speedmaster-moonwatch-professional/image-3.jpg'
     ],
     description: 'Huyền thoại vũ trụ đích thực. Chiếc đồng hồ duy nhất vượt qua mọi bài kiểm tra sinh tử của NASA để đồng hành cùng phi hành gia Apollo 11 đặt những bước chân đầu tiên lên Mặt Trăng năm 1969.',
     details: [
@@ -73,8 +74,9 @@ export const OMEGA_WATCHES: Watch[] = [
     jewelsCount: 35,
     frequency: '25,200 vph (3.5 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/omega-seamaster-diver-300m-007-edition/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/omega-seamaster-diver-300m-007-edition/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/omega-seamaster-diver-300m-007-edition/image-3.jpg'
     ],
     description: 'Phiên bản đặc biệt được tài tử Daniel Craig trực tiếp tham gia tư vấn thiết kế cho phần phim James Bond "No Time To Die". Trọng lượng siêu nhẹ nhờ chất liệu Titanium Cấp 2 và kính vòm sapphire cổ điển.',
     details: [

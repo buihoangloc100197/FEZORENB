@@ -27,8 +27,9 @@ export const VACHERON_CONSTANTIN_WATCHES: Watch[] = [
     jewelsCount: 54,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-overseas-chronograph-5500v/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-overseas-chronograph-5500v/image-2.jpg',
+      'https://images.unsplash.com/photo-1547996160-71dfabb1a7b1?auto=format&fit=crop&w=1200&q=90'
     ],
     description: 'Thành viên của "Bộ Ba Thánh Thần" (Holy Trinity) của ngành đồng hồ Thụy Sĩ với lịch sử liên tục từ năm 1755. Overseas Chronograph là người bạn đồng hành hoàn hảo cho những chuyến du hành viễn dương đẳng cấp.',
     details: [
@@ -74,8 +75,9 @@ export const VACHERON_CONSTANTIN_WATCHES: Watch[] = [
     jewelsCount: 36,
     frequency: '19,800 vph (2.75 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-patrimony-perpetual-calendar/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-patrimony-perpetual-calendar/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-patrimony-perpetual-calendar/image-3.jpg'
     ],
     description: 'Biểu tượng của sự chuẩn mực thanh lịch vĩnh cửu. Bộ Lịch Vạn Niên cơ học tự động tính toán chính xác số ngày trong tháng và năm nhuận, không cần can thiệp chỉnh tay cho đến tận năm 2100.',
     details: [

@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
         },
       };
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      let res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -75,12 +75,27 @@ export async function POST(req: NextRequest) {
         }
       );
 
+      if (!res.ok) {
+        // Fallback to gemini-3.5-flash if 3.6 encounters rate limit or unavailability
+        res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }
+        );
+      }
+
       if (res.ok) {
         const data = await res.json();
         const replyText =
           data.candidates?.[0]?.content?.parts?.[0]?.text ||
           'Kính thưa Quý khách, tôi luôn sẵn sàng hỗ trợ Quý khách tuyển chọn những cỗ máy thời gian độc bản.';
         return NextResponse.json({ reply: replyText });
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error('Gemini API Error:', res.status, errData);
       }
     }
 

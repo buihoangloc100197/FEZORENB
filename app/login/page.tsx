@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail, Eye, EyeOff, ShieldCheck, UserCheck } from "lucide-react";
+import { ArrowRight, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import ZorenbLogo from "@/components/ZorenbLogo";
 import { useAuth } from "@/context/AuthContext";
 
@@ -24,25 +24,11 @@ export default function LoginPage() {
     const result = await login(email, password);
 
     if (result.success) {
-      if (email.toLowerCase().includes("admin")) {
-        router.push("/admin");
-      } else {
-        router.push("/profile");
-      }
+      router.push("/");
     } else {
       setErrorMessage(result.error || "Đăng nhập không thành công.");
       setIsSubmitting(false);
     }
-  };
-
-  const fillDemoAdmin = () => {
-    setEmail("admin@zorenb.com");
-    setPassword("admin123");
-  };
-
-  const fillDemoUser = () => {
-    setEmail("vip.collector@zorenb.com");
-    setPassword("password123");
   };
 
   return (
@@ -116,31 +102,6 @@ export default function LoginPage() {
           )}
 
           {/* Quick Demo Acccount Buttons */}
-          <div className="p-3.5 rounded-xl bg-[#121217] border border-zinc-800 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-zinc-400">
-              <span>Đăng nhập nhanh thử nghiệm:</span>
-              <span className="text-[10px] text-[#d4af37] font-mono">Bcrypt Hash</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={fillDemoAdmin}
-                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 hover:border-[#d4af37] text-[11px] text-zinc-200 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
-                <span>Admin Toàn Quyền</span>
-              </button>
-              <button
-                type="button"
-                onClick={fillDemoUser}
-                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 hover:border-[#d4af37] text-[11px] text-zinc-200 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Khách Hàng VIP</span>
-              </button>
-            </div>
-          </div>
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4 font-sans">
             <div className="space-y-1.5">

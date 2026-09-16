@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase";
+
+const isUUID = (id: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,8 +13,9 @@ export async function GET(req: NextRequest) {
 
     const user = JSON.parse(sessionCookie.value);
 
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+    if (isSupabaseConfigured && user?.id && isUUID(user.id)) {
+      const db = getServiceSupabase();
+      const { data, error } = await db
         .from("cart_items")
         .select("quantity, products(*)")
         .eq("user_id", user.id);
@@ -44,9 +48,10 @@ export async function POST(req: NextRequest) {
     const user = JSON.parse(sessionCookie.value);
     const { items } = await req.json();
 
-    if (isSupabaseConfigured && items && Array.isArray(items)) {
+    if (isSupabaseConfigured && user?.id && isUUID(user.id) && items && Array.isArray(items)) {
+      const db = getServiceSupabase();
       // Upsert cart items into Supabase
-      await supabase.from("cart_items").delete().eq("user_id", user.id);
+      await db.from("cart_items").delete().eq("user_id", user.id);
 
       if (items.length > 0) {
         const rows = items.map((item: any) => ({
@@ -54,7 +59,7 @@ export async function POST(req: NextRequest) {
           product_id: item.product.id,
           quantity: item.quantity,
         }));
-        await supabase.from("cart_items").insert(rows);
+        await db.from("cart_items").insert(rows);
       }
     }
 

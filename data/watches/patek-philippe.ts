@@ -27,8 +27,9 @@ export const PATEK_PHILIPPE_WATCHES: Watch[] = [
     jewelsCount: 30,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-nautilus-5711-1r/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-nautilus-5711-1r/image-2.jpg',
+      'https://images.unsplash.com/photo-1547996160-71dfabb1a7b1?auto=format&fit=crop&w=1200&q=90'
     ],
     description: 'Tuyệt tác của thiên tài thiết kế Gérald Genta từ năm 1976. Chiếc đồng hồ thể thao thanh lịch được săn lùng bậc nhất hành tinh với cấu trúc khung vỏ lấy cảm hứng từ ô cửa sổ mạn tàu biển sang trọng.',
     details: [
@@ -74,8 +75,9 @@ export const PATEK_PHILIPPE_WATCHES: Watch[] = [
     jewelsCount: 29,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-aquanaut-5167a/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-aquanaut-5167a/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-aquanaut-5167a/image-3.jpg'
     ],
     description: 'Ra mắt năm 1997, Aquanaut mang tinh thần trẻ trung, năng động và hiện đại. Dây đeo cao su Tropical độc quyền mang lại cảm giác đeo êm ái hoàn hảo dưới mọi điều kiện khắc nghiệt.',
     details: [
@@ -121,8 +123,9 @@ export const PATEK_PHILIPPE_WATCHES: Watch[] = [
     jewelsCount: 108,
     frequency: '25,200 vph (3.5 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-grandmaster-chime-6300g/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-grandmaster-chime-6300g/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-grandmaster-chime-6300g/image-3.jpg'
     ],
     description: 'Tuyệt tác phức tạp nhất trong lịch sử 185 năm của Patek Philippe. Sở hữu 20 chức năng tinh xảo bao gồm 5 chế độ điểm chuông ngũ âm Grande Sonnerie, điểm chuông báo thức và chuông điểm ngày theo yêu cầu.',
     details: [

@@ -27,9 +27,9 @@ export const ROLEX_WATCHES: Watch[] = [
     jewelsCount: 44,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-cosmograph-daytona-126500ln/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-cosmograph-daytona-126500ln/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-cosmograph-daytona-126500ln/image-3.jpg'
     ],
     description: 'Biểu tượng tối thượng của đường đua tốc độ Daytona International Speedway. Thế hệ mới trang bị bộ máy Calibre 4131 đột phá cùng cơ cấu thoát Chronergy và rô-to khoét rỗng tinh xảo.',
     details: [
@@ -79,8 +79,9 @@ export const ROLEX_WATCHES: Watch[] = [
     jewelsCount: 31,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-submariner-date-126610lv/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-submariner-date-126610lv/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-submariner-date-126610lv/image-3.jpg'
     ],
     description: 'Chiếc đồng hồ lặn biển chuẩn mực của nhân loại từ năm 1953. Phiên bản "Starbucks" 41mm kết hợp vành gốm xanh lục đặc trưng và núm vặn khóa ba tầng Triplock chịu áp suất biển sâu phi thường.',
     details: [
@@ -127,8 +128,9 @@ export const ROLEX_WATCHES: Watch[] = [
     jewelsCount: 31,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-day-date-40-president-228238/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-day-date-40-president-228238/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-day-date-40-president-228238/image-3.jpg'
     ],
     description: 'Chiếc đồng hồ của các nguyên thủ quốc gia và nhà lãnh đạo kiệt xuất. Chỉ được chế tác độc quyền từ kim loại quý (Vàng 18K hoặc Platinum), hiển thị đầy đủ thứ trong tuần bằng chữ tại vị trí 12 giờ.',
     details: [

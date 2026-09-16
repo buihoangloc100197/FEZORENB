@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -28,7 +28,24 @@ import Footer from '@/components/Footer';
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = params?.id as string;
-  const watch = ALL_WATCHES.find((w) => w.id === productId) || ALL_WATCHES[0];
+  const localWatch = ALL_WATCHES.find((w) => w.id === productId) || ALL_WATCHES[0];
+  const [watch, setWatch] = useState<Watch>(localWatch);
+
+  useEffect(() => {
+    if (!productId) return;
+    fetch(`/api/products/${productId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.product) {
+          setWatch((prev) => ({
+            ...prev,
+            ...data.product,
+            images: data.product.images?.length ? data.product.images : prev.images,
+          }));
+        }
+      })
+      .catch((err) => console.warn('Could not fetch from API, using fallback', err));
+  }, [productId]);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedEdition, setSelectedEdition] = useState('Dây Nguyên Bản Đi Kèm');

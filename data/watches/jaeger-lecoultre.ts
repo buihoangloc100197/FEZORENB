@@ -26,8 +26,9 @@ export const JAEGER_LECOULTRE_WATCHES: Watch[] = [
     jewelsCount: 19,
     frequency: '21,600 vph (3 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/jaeger-lecoultre-reverso-tribute-duoface/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/jaeger-lecoultre-reverso-tribute-duoface/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/jaeger-lecoultre-reverso-tribute-duoface/image-3.jpg'
     ],
     description: 'Ra đời năm 1931 để bảo vệ mặt kính đồng hồ khỏi các cú va đập gậy polo của các sĩ quan Anh tại Ấn Độ. Công nghệ Duoface cho phép một bộ máy cơ khí duy nhất kiểm soát 2 mặt số với 2 múi giờ hoàn toàn độc lập.',
     details: [

@@ -3,15 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, User, ChevronDown, Menu, Shield } from "lucide-react";
+import { ShoppingBag, User, Shield } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import BrandSidebar from "./BrandSidebar";
 import ZorenbLogo from "./ZorenbLogo";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isBrandSidebarOpen, setIsBrandSidebarOpen] = useState(false);
   const { totalCount, openCart } = useCart();
   const { user, isAdmin } = useAuth();
   const pathname = usePathname();
@@ -35,21 +33,8 @@ export default function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 
-          {/* ── Left Side: Menu Trigger & Brand Identity ── */}
+          {/* ── Left Side: Brand Identity ── */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Left Menu Button (Menu nằm ở bên trái) */}
-            <button
-              onClick={() => setIsBrandSidebarOpen(true)}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-zinc-800 hover:border-[#d4af37]/60 text-zinc-300 hover:text-[#d4af37] transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Mở danh sách các hãng đồng hồ"
-              aria-label="Menu các hãng"
-            >
-              <Menu className="w-4 h-4" />
-              <span className="text-[11px] uppercase tracking-wider hidden sm:inline font-semibold">
-                Menu Hãng
-              </span>
-            </button>
-
             {/* Brand Logo & Name 'ZORENB' */}
             <Link
               href="/"
@@ -84,13 +69,17 @@ export default function Navbar() {
               )}
             </Link>
 
-            <button
-              onClick={() => setIsBrandSidebarOpen(true)}
-              className="flex items-center gap-1.5 hover:text-[#d4af37] transition-colors py-1 group/btn cursor-pointer"
+            <Link
+              href="/products"
+              className={`hover:text-[#d4af37] transition-colors py-1 relative font-semibold ${
+                pathname.startsWith("/products") ? "text-[#d4af37]" : ""
+              }`}
             >
-              <span>Bộ Sưu Tập</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#d4af37] group-hover/btn:rotate-180 transition-transform duration-300" />
-            </button>
+              BỘ SƯU TẬP
+              {pathname.startsWith("/products") && (
+                <span className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#d4af37]" />
+              )}
+            </Link>
 
             <Link
               href="/#brand-story"
@@ -154,12 +143,6 @@ export default function Navbar() {
           </div>
         </div>
       </header>
-
-      {/* Brand Sidebar with 10 Famous Watch Brands */}
-      <BrandSidebar
-        isOpen={isBrandSidebarOpen}
-        onClose={() => setIsBrandSidebarOpen(false)}
-      />
     </>
   );
 }

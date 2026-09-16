@@ -1,75 +1,172 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hashPassword } from "@/lib/auth";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase";
+
+// Regular expression for validating standard email format (RFC 5322 compliant)
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+// Pattern detecting typical SQL injection & authentication bypass attempts
+const SQLI_INJECTION_PATTERN = /('|"|--|;|\/\*|\*\/|\b(or|and)\b\s+['"\d\w]+\s*=\s*['"\d\w]+|\bunion\b\s+\bselect\b|\bdrop\b\s+\btable\b)/i;
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, fullName, phone } = await req.json();
+    const body = await req.json().catch(() => null);
 
-    if (!email || !password) {
+    if (!body || typeof body !== "object") {
       return NextResponse.json(
-        { error: "Vui lòng cung cấp email và mật khẩu." },
+        { error: "Dữ liệu yêu cầu không hợp lệ." },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
+    const { email, password, fullName, phone } = body;
+
+    // 1. Validate Email (Bắt buộc phải có email hợp lệ)
+    if (!email || typeof email !== "string") {
       return NextResponse.json(
-        { error: "Mật khẩu phải có ít nhất 6 ký tự." },
+        { error: "Bắt buộc phải cung cấp địa chỉ email để đăng ký tài khoản." },
         { status: 400 }
       );
     }
 
-    // Hash password with bcrypt
-    const hashedPassword = await hashPassword(password);
-    const userId = "usr_" + Math.random().toString(36).substring(2, 11);
-    const role = email.toLowerCase().includes("admin") ? "admin" : "user";
+    const cleanEmail = email.toLowerCase().trim();
 
-    const newUser = {
-      id: userId,
-      email: email.toLowerCase(),
-      fullName: fullName || email.split("@")[0],
-      phone: phone || "",
-      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
-      role,
-      createdAt: new Date().toISOString(),
-    };
+    if (!cleanEmail || cleanEmail.length === 0) {
+      return NextResponse.json(
+        { error: "Email không được để trống hoặc chỉ chứa khoảng trắng." },
+        { status: 400 }
+      );
+    }
+
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+      return NextResponse.json(
+        { error: "Định dạng email không hợp lệ. Vui lòng nhập email thật của Quý khách." },
+        { status: 400 }
+      );
+    }
+
+    // 2. Validate Password (Chống mật khẩu rỗng " " hoặc injection)
+    if (!password || typeof password !== "string") {
+      return NextResponse.json(
+        { error: "Bắt buộc phải nhập mật khẩu." },
+        { status: 400 }
+      );
+    }
+
+    const trimmedPassword = password.trim();
+
+    if (trimmedPassword.length === 0) {
+      return NextResponse.json(
+        { error: "Mật khẩu không được là khoảng trắng hoặc để trống." },
+        { status: 400 }
+      );
+    }
+
+    if (trimmedPassword.length < 6) {
+      return NextResponse.json(
+        { error: "Mật khẩu phải có độ dài tối thiểu từ 6 ký tự trở lên." },
+        { status: 400 }
+      );
+    }
+
+    // 3. Security Guard against SQL Injection / Bypass patterns
+    if (SQLI_INJECTION_PATTERN.test(cleanEmail) || SQLI_INJECTION_PATTERN.test(password)) {
+      return NextResponse.json(
+        { error: "Cảnh báo bảo mật: Phát hiện ký tự không hợp lệ hoặc chuỗi injection nguy hiểm." },
+        { status: 400 }
+      );
+    }
+
+    const cleanFullName = (fullName && typeof fullName === "string") ? fullName.trim() : cleanEmail.split("@")[0].toUpperCase();
+    const cleanPhone = (phone && typeof phone === "string") ? phone.trim() : "";
+    const role = cleanEmail.includes("admin") ? "admin" : "user";
+    const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`;
+
+    let userId = "usr_" + Math.random().toString(36).substring(2, 11);
+    let requiresEmailConfirmation = false;
 
     if (isSupabaseConfigured) {
-      const { error: dbError } = await supabase.from("profiles").insert({
-        id: userId,
-        email: newUser.email,
-        full_name: newUser.fullName,
-        phone: newUser.phone,
-        avatar_url: newUser.avatarUrl,
-        role: newUser.role,
-        password_hash: hashedPassword,
+      const adminClient = getServiceSupabase();
+      const origin = req.nextUrl.origin;
+
+      // Call Supabase auth.signUp to trigger confirmation email to the user's real email address
+      const { data: signUpData, error: signUpError } = await adminClient.auth.signUp({
+        email: cleanEmail,
+        password: trimmedPassword,
+        options: {
+          data: {
+            full_name: cleanFullName,
+            phone: cleanPhone,
+            role,
+          },
+          emailRedirectTo: `${origin}/login?confirmed=true`,
+        },
       });
 
-      if (dbError) {
+      if (signUpError) {
+        if (
+          signUpError.message.toLowerCase().includes("already registered") ||
+          signUpError.message.toLowerCase().includes("already exists")
+        ) {
+          return NextResponse.json(
+            { error: "Địa chỉ email này đã được đăng ký. Quý khách vui lòng đăng nhập hoặc dùng email khác." },
+            { status: 400 }
+          );
+        }
         return NextResponse.json(
-          { error: "Lỗi lưu dữ liệu: " + dbError.message },
-          { status: 500 }
+          { error: "Lỗi đăng ký tài khoản: " + signUpError.message },
+          { status: 400 }
         );
+      }
+
+      if (signUpData.user) {
+        userId = signUpData.user.id;
+        requiresEmailConfirmation = !signUpData.session;
+
+        // Upsert into profiles table
+        await adminClient.from("profiles").upsert({
+          id: userId,
+          full_name: cleanFullName,
+          phone: cleanPhone,
+          avatar_url: avatarUrl,
+          role,
+        });
       }
     }
 
+    const newUser = {
+      id: userId,
+      email: cleanEmail,
+      fullName: cleanFullName,
+      phone: cleanPhone,
+      avatarUrl,
+      role,
+      requiresEmailConfirmation,
+      createdAt: new Date().toISOString(),
+    };
+
     const response = NextResponse.json({
-      message: "Đăng ký thành công!",
+      success: true,
+      message: requiresEmailConfirmation
+        ? `Đăng ký thành công! Hệ thống ZORENB đã gửi email xác nhận đến ${cleanEmail}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) để kích hoạt tài khoản chính chủ.`
+        : "Đăng ký thành công!",
+      requiresEmailConfirmation,
       user: newUser,
     });
 
-    response.cookies.set("zorenb_session", JSON.stringify(newUser), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    // Only set active session cookie if email doesn't require separate confirmation
+    if (!requiresEmailConfirmation) {
+      response.cookies.set("zorenb_session", JSON.stringify(newUser), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7,
+        path: "/",
+      });
+    }
 
     return response;
   } catch (error: any) {
     return NextResponse.json(
-      { error: "Lỗi hệ thống: " + error.message },
+      { error: "Lỗi hệ thống khi đăng ký: " + error.message },
       { status: 500 }
     );
   }

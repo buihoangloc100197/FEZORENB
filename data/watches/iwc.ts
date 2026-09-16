@@ -27,8 +27,9 @@ export const IWC_WATCHES: Watch[] = [
     jewelsCount: 22,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/iwc-big-pilots-watch-43/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/iwc-big-pilots-watch-43/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/iwc-big-pilots-watch-43/image-3.jpg'
     ],
     description: 'Chiếc đồng hồ phi công đích thực từ năm 1940. Núm chỉnh giờ hình củ hành ngoại cỡ (Oversized onion crown) được chế tạo để các phi công có thể điều chỉnh thời gian ngay cả khi đang đeo găng tay dày trong buồng lái.',
     details: [

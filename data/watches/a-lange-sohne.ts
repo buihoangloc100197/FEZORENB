@@ -27,8 +27,9 @@ export const A_LANGE_SOHNE_WATCHES: Watch[] = [
     jewelsCount: 43,
     frequency: '21,600 vph (3 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/a-lange-sohne-lange-1-gold/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/a-lange-sohne-lange-1-gold/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/a-lange-sohne-lange-1-gold/image-3.jpg'
     ],
     description: 'Biểu tượng tối thượng của nghệ thuật chế tác đồng hồ Saxon nước Đức từ năm 1994. Bố cục mặt số không trùng tâm kết hợp cùng ô lịch ngày ngoại cỡ lấy cảm hứng từ đồng hồ 5 phút tại Nhà hát Opera Semper Dresden.',
     details: [

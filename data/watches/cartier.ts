@@ -27,8 +27,9 @@ export const CARTIER_WATCHES: Watch[] = [
     jewelsCount: 20,
     frequency: '28,800 vph (4 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-santos-de-cartier-skeleton/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-santos-de-cartier-skeleton/image-2.jpg',
+      'https://images.unsplash.com/photo-1547996160-71dfabb1a7b1?auto=format&fit=crop&w=1200&q=90'
     ],
     description: 'Bắt nguồn từ chiếc đồng hồ đeo tay đầu tiên trên thế giới do Louis Cartier sáng tạo năm 1904 cho phi công tiên phong Alberto Santos-Dumont. Phiên bản Skeleton biến các thanh cầu máy cơ khí thành chính các cọc số La Mã chỉ giờ đầy mê hoặc.',
     details: [
@@ -73,8 +74,9 @@ export const CARTIER_WATCHES: Watch[] = [
     jewelsCount: 19,
     frequency: '21,600 vph (3 Hz)',
     images: [
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-tank-louis-yellow-gold/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-tank-louis-yellow-gold/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-tank-louis-yellow-gold/image-3.jpg'
     ],
     description: 'Biểu tượng tối thượng của phong cách thanh lịch Art Deco kể từ năm 1922. Chiếc đồng hồ từng ngự trên cổ tay của Andy Warhol, Muhammad Ali và Công nương Diana.',
     details: [

@@ -14,6 +14,8 @@ export default function RegisterPage() {
     phone: "",
     password: "",
   });
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [successInfo, setSuccessInfo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register } = useAuth();
@@ -32,7 +34,10 @@ export default function RegisterPage() {
     });
 
     if (result.success) {
-      router.push("/profile");
+      setRegisteredEmail(formData.email);
+      setSuccessInfo(
+        `Chúng tôi đã gửi thư xác nhận đến ${formData.email}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) và nhấn vào liên kết để xác thực tài khoản chính chủ trước khi đăng nhập.`
+      );
     } else {
       setErrorMessage(result.error || "Đăng ký không thành công.");
       setIsSubmitting(false);
@@ -132,13 +137,36 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {errorMessage && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-              {errorMessage}
+          {successInfo ? (
+            <div className="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                <Mail className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-zinc-100 uppercase tracking-wider">
+                Xác Thực Email Chính Chủ
+              </h3>
+              <p className="text-xs text-zinc-300 leading-relaxed font-light">
+                {successInfo}
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 font-bold text-xs uppercase tracking-wider shadow-md"
+                >
+                  <span>Chuyển Đến Đăng Nhập</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
-          )}
+          ) : (
+            <>
+              {errorMessage && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+                  {errorMessage}
+                </div>
+              )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs uppercase tracking-widest text-zinc-400 font-semibold block">
                 Họ và Tên
@@ -222,6 +250,8 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
+          </>
+          )}
 
           <div className="text-center pt-3 border-t border-zinc-900">
             <p className="text-xs text-zinc-400">

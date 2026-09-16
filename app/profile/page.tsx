@@ -18,29 +18,14 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sample order history
-  const [orders] = useState([
-    {
-      id: "ORD-92841",
-      date: "12/03/2026",
-      status: "Đã giao an toàn qua xe bọc thép",
-      total: 34500,
-      items: ["Rolex Cosmograph Daytona 126500LN"],
-      paymentMethod: "Cổng PayOS QR",
-    },
-    {
-      id: "ORD-88123",
-      date: "04/01/2026",
-      status: "Đã bàn giao tại Boutique Geneva",
-      total: 52000,
-      items: ["Patek Philippe Aquanaut 5167A"],
-      paymentMethod: "Chuyển khoản quốc tế Swift",
-    },
-  ]);
+  // Real order history from Supabase
+  const [orders, setOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -50,7 +35,18 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // Handle avatar file selection and convert to Base64 (ready for Supabase storage or immediate preview)
+  // Fetch real orders from Supabase
+  useEffect(() => {
+    if (!user) return;
+    setOrdersLoading(true);
+    fetch("/api/orders")
+      .then((r) => r.json())
+      .then((data) => setOrders(data.orders || []))
+      .catch(() => setOrders([]))
+      .finally(() => setOrdersLoading(false));
+  }, [user]);
+
+  // Handle avatar file selection — preview immediately, upload on save
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -58,6 +54,7 @@ export default function ProfilePage() {
         alert("Kích thước ảnh tối đa là 5MB.");
         return;
       }
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
@@ -71,18 +68,42 @@ export default function ProfilePage() {
     setIsSaving(true);
     setSuccessMsg(null);
 
-    const result = await updateProfile({
-      fullName,
-      phone,
-      avatarUrl: avatarPreview,
-    });
+    try {
+      // Step 1: Upload avatar to Supabase Storage if a new file is selected
+      let finalAvatarUrl = avatarPreview;
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("avatar", avatarFile);
+        const uploadRes = await fetch("/api/auth/upload-avatar", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) {
+          alert("Lỗi upload ảnh: " + (uploadData.error || "Không xác định"));
+          setIsSaving(false);
+          return;
+        }
+        finalAvatarUrl = uploadData.avatarUrl;
+        setAvatarPreview(finalAvatarUrl);
+        setAvatarFile(null);
+      }
 
-    setIsSaving(false);
-    if (result.success) {
-      setSuccessMsg("Cập nhật thông tin cá nhân và ảnh đại diện thành công!");
-      setTimeout(() => setSuccessMsg(null), 4000);
-    } else {
-      alert(result.error || "Lỗi cập nhật.");
+      // Step 2: Update profile info (name, phone, avatarUrl)
+      const result = await updateProfile({
+        fullName,
+        phone,
+        avatarUrl: finalAvatarUrl,
+      });
+
+      if (result.success) {
+        setSuccessMsg("Cập nhật thông tin cá nhân và ảnh đại diện thành công!");
+        setTimeout(() => setSuccessMsg(null), 4000);
+      } else {
+        alert(result.error || "Lỗi cập nhật.");
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -129,6 +150,7 @@ export default function ProfilePage() {
                     fill
                     sizes="64px"
                     className="object-cover"
+                    unoptimized
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#d4af37]">
@@ -314,7 +336,7 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Purchase History (User Request: "User có lưu lại lịch sử mua hàng") */}
+            {/* Purchase History — Real data from Supabase */}
             <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-4">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#d4af37]" />
@@ -323,37 +345,66 @@ export default function ProfilePage() {
                 </h2>
               </div>
 
-              <div className="space-y-3">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="p-4 rounded-xl bg-[#14141a] border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-zinc-200">{order.id}</span>
-                        <span className="text-[10px] text-zinc-500">• {order.date}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          {order.paymentMethod}
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-300 font-medium">
-                        {order.items.join(", ")}
-                      </p>
-                      <p className="text-[11px] text-[#d4af37] font-light">
-                        Trạng thái: {order.status}
-                      </p>
-                    </div>
+              {ordersLoading ? (
+                <p className="text-xs text-zinc-500 py-3 animate-pulse">Đang tải lịch sử đơn hàng...</p>
+              ) : orders.length === 0 ? (
+                <p className="text-xs text-zinc-500 py-3">Quý khách chưa có đơn hàng nào.</p>
+              ) : (
+                <div className="space-y-3">
+                  {orders.map((order) => {
+                    const productNames = (order.order_items || [])
+                      .map((i: any) => i.product_name)
+                      .join(", ");
+                    const dateStr = order.created_at
+                      ? new Date(order.created_at).toLocaleDateString("vi-VN")
+                      : "";
+                    const statusMap: Record<string, string> = {
+                      paid: "Đã thanh toán",
+                      pending: "Đang chờ thanh toán",
+                      cancelled: "Đã hủy",
+                      refunded: "Đã hoàn tiền",
+                    };
+                    const statusLabel = statusMap[order.status] || order.status;
+                    const statusColor =
+                      order.status === "paid"
+                        ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                        : order.status === "cancelled" || order.status === "refunded"
+                        ? "text-rose-400 bg-rose-500/10 border-rose-500/20"
+                        : "text-amber-400 bg-amber-500/10 border-amber-500/20";
 
-                    <div className="text-right sm:text-right flex-shrink-0">
-                      <p className="text-xs text-zinc-400">Tổng đầu tư</p>
-                      <p className="text-sm font-mono font-bold text-zinc-100">
-                        ${formatPrice(order.total)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    return (
+                      <div
+                        key={order.id}
+                        className="p-4 rounded-xl bg-[#14141a] border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono font-bold text-zinc-200">
+                              #{order.order_code}
+                            </span>
+                            <span className="text-[10px] text-zinc-500">• {dateStr}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] border ${statusColor}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-300 font-medium">
+                            {productNames || "—"}
+                          </p>
+                        </div>
+
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xs text-zinc-400">Tổng đầu tư</p>
+                          <p className="text-sm font-mono font-bold text-zinc-100">
+                            {order.currency === "VND"
+                              ? `${Number(order.total_amount).toLocaleString("vi-VN")} ₫`
+                              : `$${formatPrice(order.total_amount)}`}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
