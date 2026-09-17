@@ -74,6 +74,9 @@ export default function ProfilePage() {
       if (avatarFile) {
         const formData = new FormData();
         formData.append("avatar", avatarFile);
+        if (user?.id) formData.append("userId", user.id);
+        if (user?.email) formData.append("userEmail", user.email);
+
         const uploadRes = await fetch("/api/auth/upload-avatar", {
           method: "POST",
           body: formData,

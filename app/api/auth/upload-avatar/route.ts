@@ -4,21 +4,34 @@ import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase";
 export async function POST(req: NextRequest) {
   try {
     const sessionCookie = req.cookies.get("zorenb_session");
-    if (!sessionCookie?.value) {
-      return NextResponse.json({ error: "Chua dang nhap." }, { status: 401 });
-    }
+    let currentUser: any = null;
 
-    const currentUser = JSON.parse(sessionCookie.value);
-
-    if (!isSupabaseConfigured) {
-      return NextResponse.json(
-        { error: "Supabase chua duoc cau hinh." },
-        { status: 503 }
-      );
+    if (sessionCookie?.value) {
+      try {
+        currentUser = JSON.parse(sessionCookie.value);
+      } catch {
+        currentUser = null;
+      }
     }
 
     const formData = await req.formData();
     const file = formData.get("avatar") as File | null;
+    const fallbackUserId = formData.get("userId") as string | null;
+    const fallbackEmail = formData.get("userEmail") as string | null;
+
+    // If cookie was not passed or expired on custom domain, fallback to client state
+    if (!currentUser && fallbackUserId) {
+      currentUser = {
+        id: fallbackUserId,
+        email: fallbackEmail || "",
+        fullName: "",
+        role: "user",
+      };
+    }
+
+    if (!currentUser?.id) {
+      return NextResponse.json({ error: "Chua dang nhap." }, { status: 401 });
+    }
 
     if (!file) {
       return NextResponse.json({ error: "Khong co file anh." }, { status: 400 });
@@ -87,6 +100,7 @@ export async function POST(req: NextRequest) {
       fallbackResponse.cookies.set("zorenb_session", JSON.stringify(updatedUser), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
         maxAge: 60 * 60 * 24 * 7,
         path: "/",
       });
@@ -110,6 +124,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set("zorenb_session", JSON.stringify(updatedUser), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
     });
