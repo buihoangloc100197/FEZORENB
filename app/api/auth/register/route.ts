@@ -90,49 +90,112 @@ export async function POST(req: NextRequest) {
       const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
       const proto = req.headers.get("x-forwarded-proto") || "https";
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (host ? `${proto}://${host}` : req.nextUrl.origin);
+      const redirectTo = `${siteUrl}/auth/callback?next=/auth/confirmed`;
 
-      // Call Supabase auth.signUp to trigger confirmation email to the user's real email address
-      const { data: signUpData, error: signUpError } = await adminClient.auth.signUp({
-        email: cleanEmail,
-        password: trimmedPassword,
-        options: {
-          data: {
+      // 1. Try generate confirmation link directly via admin client
+      // This generates a secure Supabase verification link that we can send via Resend!
+      let verificationSentViaResend = false;
+      try {
+        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+          type: "signup",
+          email: cleanEmail,
+          password: trimmedPassword,
+          options: {
+            data: {
+              full_name: cleanFullName,
+              phone: cleanPhone,
+              role,
+            },
+            redirectTo,
+          },
+        });
+
+        if (linkData?.user) {
+          userId = linkData.user.id;
+          requiresEmailConfirmation = true;
+
+          // Upsert profile
+          await adminClient.from("profiles").upsert({
+            id: userId,
             full_name: cleanFullName,
             phone: cleanPhone,
+            avatar_url: avatarUrl,
             role,
-          },
-          emailRedirectTo: `${siteUrl}/auth/callback?next=/auth/confirmed`,
-        },
-      });
+          });
 
-      if (signUpError) {
-        if (
-          signUpError.message.toLowerCase().includes("already registered") ||
-          signUpError.message.toLowerCase().includes("already exists")
-        ) {
+          // Send luxury verification email using RESEND
+          if (linkData.properties?.action_link) {
+            const { sendVerificationEmail } = await import("@/lib/email-verification");
+            const resendRes = await sendVerificationEmail({
+              to: cleanEmail,
+              customerName: cleanFullName,
+              verificationLink: linkData.properties.action_link,
+            });
+            if (resendRes.success) {
+              verificationSentViaResend = true;
+            }
+          }
+        } else if (linkError) {
+          // If already registered, return clear message
+          if (
+            linkError.message.toLowerCase().includes("already registered") ||
+            linkError.message.toLowerCase().includes("already exists")
+          ) {
+            return NextResponse.json(
+              { error: "Địa chỉ email này đã được đăng ký. Quý khách vui lòng đăng nhập hoặc dùng email khác." },
+              { status: 400 }
+            );
+          }
+          console.warn("generateLink error, falling back to signUp:", linkError.message);
+        }
+      } catch (genErr) {
+        console.warn("Failed generateLink, trying standard signUp:", genErr);
+      }
+
+      // 2. Fallback to standard Supabase signUp if not sent via Resend
+      if (!verificationSentViaResend && !userId.startsWith("usr_")) {
+        const { data: signUpData, error: signUpError } = await adminClient.auth.signUp({
+          email: cleanEmail,
+          password: trimmedPassword,
+          options: {
+            data: {
+              full_name: cleanFullName,
+              phone: cleanPhone,
+              role,
+            },
+            emailRedirectTo: redirectTo,
+          },
+        });
+
+        if (signUpError) {
+          if (
+            signUpError.message.toLowerCase().includes("already registered") ||
+            signUpError.message.toLowerCase().includes("already exists")
+          ) {
+            return NextResponse.json(
+              { error: "Địa chỉ email này đã được đăng ký. Quý khách vui lòng đăng nhập hoặc dùng email khác." },
+              { status: 400 }
+            );
+          }
           return NextResponse.json(
-            { error: "Địa chỉ email này đã được đăng ký. Quý khách vui lòng đăng nhập hoặc dùng email khác." },
+            { error: "Lỗi đăng ký tài khoản: " + signUpError.message },
             { status: 400 }
           );
         }
-        return NextResponse.json(
-          { error: "Lỗi đăng ký tài khoản: " + signUpError.message },
-          { status: 400 }
-        );
-      }
 
-      if (signUpData.user) {
-        userId = signUpData.user.id;
-        requiresEmailConfirmation = !signUpData.session;
+        if (signUpData.user) {
+          userId = signUpData.user.id;
+          requiresEmailConfirmation = !signUpData.session;
 
-        // Upsert into profiles table
-        await adminClient.from("profiles").upsert({
-          id: userId,
-          full_name: cleanFullName,
-          phone: cleanPhone,
-          avatar_url: avatarUrl,
-          role,
-        });
+          // Upsert into profiles table
+          await adminClient.from("profiles").upsert({
+            id: userId,
+            full_name: cleanFullName,
+            phone: cleanPhone,
+            avatar_url: avatarUrl,
+            role,
+          });
+        }
       }
     }
 
