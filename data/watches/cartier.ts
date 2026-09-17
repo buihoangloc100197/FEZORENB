@@ -29,7 +29,7 @@ export const CARTIER_WATCHES: Watch[] = [
     images: [
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-santos-de-cartier-skeleton/image-1.jpg',
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-santos-de-cartier-skeleton/image-2.jpg',
-      'https://images.unsplash.com/photo-1547996160-71dfabb1a7b1?auto=format&fit=crop&w=1200&q=90'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/cartier-santos-de-cartier-skeleton/image-3.jpg'
     ],
     description: 'Bắt nguồn từ chiếc đồng hồ đeo tay đầu tiên trên thế giới do Louis Cartier sáng tạo năm 1904 cho phi công tiên phong Alberto Santos-Dumont. Phiên bản Skeleton biến các thanh cầu máy cơ khí thành chính các cọc số La Mã chỉ giờ đầy mê hoặc.',
     details: [

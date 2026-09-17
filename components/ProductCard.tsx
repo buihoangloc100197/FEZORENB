@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ShoppingBag, Heart, Star, Check, Watch as WatchIcon } from "lucide-react";
 import { Watch } from "@/data/watches/types";
 import { useCart } from "@/context/CartContext";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatVND } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Watch;
@@ -153,15 +153,15 @@ export default function ProductCard({ product, theme = "dark" }: ProductCardProp
           )}
         </div>
 
-        {/* Row 5: Price + Original Price + "CHI TIẾT →" (Photo 2) */}
+        {/* Row 5: Price in VND + Original Price + "CHI TIẾT →" */}
         <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
+          <div className="flex flex-col">
             <span className="text-sm sm:text-base font-bold font-mono tracking-tight text-[#d4af37]">
-              ${formatPrice(product.price)}
+              {formatVND(product.price)}
             </span>
             {product.originalPrice && (
-              <span className="text-[11px] font-mono text-zinc-500 line-through">
-                ${formatPrice(product.originalPrice)}
+              <span className="text-[10px] font-mono text-zinc-500 line-through">
+                {formatVND(product.originalPrice)}
               </span>
             )}
           </div>

@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { ALL_WATCHES, Watch } from '@/data/watches';
 import { useCart } from '@/context/CartContext';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatVND } from '@/lib/utils';
 import ProductCard from '@/components/ProductCard';
 import Footer from '@/components/Footer';
 
@@ -149,14 +149,14 @@ export default function ProductDetailPage() {
               </p>
             </div>
 
-            {/* Price Row */}
+            {/* Price Row in VND */}
             <div className="py-4 border-y border-zinc-800/80 flex items-baseline gap-3">
               <span className="text-2xl sm:text-3xl font-semibold font-mono text-gold-300">
-                ${formatPrice(watch.price)}
+                {formatVND(watch.price)}
               </span>
               {watch.originalPrice && (
-                <span className="text-base font-mono text-zinc-500 line-through">
-                  ${formatPrice(watch.originalPrice)}
+                <span className="text-sm font-mono text-zinc-500 line-through">
+                  {formatVND(watch.originalPrice)}
                 </span>
               )}
               <span className="text-[11px] text-emerald-400 font-medium tracking-wider uppercase ml-auto">

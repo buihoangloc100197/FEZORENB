@@ -7,9 +7,11 @@ import { ShoppingBag, User, Shield } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import ZorenbLogo from "./ZorenbLogo";
+import MenuDrawer from "./MenuDrawer";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { totalCount, openCart } = useCart();
   const { user, isAdmin } = useAuth();
   const pathname = usePathname();
@@ -33,8 +35,24 @@ export default function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 
-          {/* ── Left Side: Brand Identity ── */}
+          {/* ── Left Side: Hamburger 3 Bars & Brand Identity ── */}
           <div className="flex items-center gap-3 sm:gap-4">
+            {/* 3-line Hamburger Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 sm:px-3 sm:py-2 rounded-full border border-zinc-800/80 hover:border-[#d4af37]/60 bg-black/40 hover:bg-black/60 text-zinc-300 hover:text-[#d4af37] transition-all flex items-center gap-2 group cursor-pointer shadow-lg"
+              aria-label="Mở menu 3 gạch ngang"
+            >
+              <div className="w-4.5 h-3.5 flex flex-col justify-between items-start transition-all">
+                <span className="w-4.5 h-[2px] bg-[#d4af37] rounded-full transition-all group-hover:w-3.5" />
+                <span className="w-3.5 h-[2px] bg-[#d4af37] rounded-full transition-all group-hover:w-4.5" />
+                <span className="w-4 h-[2px] bg-[#d4af37] rounded-full transition-all group-hover:w-3" />
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.25em] font-semibold text-zinc-300 group-hover:text-[#d4af37] hidden sm:inline">
+                Menu
+              </span>
+            </button>
+
             {/* Brand Logo & Name 'ZORENB' */}
             <Link
               href="/"
@@ -143,6 +161,9 @@ export default function Navbar() {
           </div>
         </div>
       </header>
+
+      {/* Luxury 3-line Hamburger Menu Drawer */}
+      <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
     </>
   );
 }

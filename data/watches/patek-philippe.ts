@@ -29,7 +29,7 @@ export const PATEK_PHILIPPE_WATCHES: Watch[] = [
     images: [
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-nautilus-5711-1r/image-1.jpg',
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-nautilus-5711-1r/image-2.jpg',
-      'https://images.unsplash.com/photo-1547996160-71dfabb1a7b1?auto=format&fit=crop&w=1200&q=90'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/patek-philippe-nautilus-5711-1r/image-3.jpg'
     ],
     description: 'Tuyệt tác của thiên tài thiết kế Gérald Genta từ năm 1976. Chiếc đồng hồ thể thao thanh lịch được săn lùng bậc nhất hành tinh với cấu trúc khung vỏ lấy cảm hứng từ ô cửa sổ mạn tàu biển sang trọng.',
     details: [

@@ -77,7 +77,7 @@ export const RICHARD_MILLE_WATCHES: Watch[] = [
     frequency: '21,600 vph (3 Hz)',
     images: [
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/richard-mille-rm-50-03-tourbillon-mclaren/image-1.jpg',
-      'https://images.unsplash.com/photo-1547996160-71dfabb1a7b1?auto=format&fit=crop&w=1200&q=90',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/richard-mille-rm-50-03-tourbillon-mclaren/image-2.jpg',
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/richard-mille-rm-50-03-tourbillon-mclaren/image-3.jpg'
     ],
     description: 'Chiếc đồng hồ Tourbillon Chronograph kim giây kép (Split-seconds) nhẹ nhất thế giới từng được chế tạo trong lịch sử nhân loại với tổng trọng lượng chỉ 38 gram. Bộ máy bên trong chỉ nặng vỏn vẹn 7 gram.',

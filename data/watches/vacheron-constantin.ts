@@ -29,7 +29,7 @@ export const VACHERON_CONSTANTIN_WATCHES: Watch[] = [
     images: [
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-overseas-chronograph-5500v/image-1.jpg',
       'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-overseas-chronograph-5500v/image-2.jpg',
-      'https://images.unsplash.com/photo-1547996160-71dfabb1a7b1?auto=format&fit=crop&w=1200&q=90'
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/vacheron-constantin-overseas-chronograph-5500v/image-3.jpg'
     ],
     description: 'Thành viên của "Bộ Ba Thánh Thần" (Holy Trinity) của ngành đồng hồ Thụy Sĩ với lịch sử liên tục từ năm 1755. Overseas Chronograph là người bạn đồng hành hoàn hảo cho những chuyến du hành viễn dương đẳng cấp.',
     details: [

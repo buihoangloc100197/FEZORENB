@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       // Select core columns — optional columns (caliber, case_size, complications, original_price)
       // may not exist yet in older DB schemas; we gracefully handle their absence
       let query = db.from("products").select(
-        "id, name, brand, reference, price, images, description, rating"
+        "id, name, brand, reference, price, original_price, images, caliber, complications, description, rating"
       );
 
       // Filter by brand

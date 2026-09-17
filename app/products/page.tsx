@@ -43,10 +43,12 @@ export default function ProductsPage() {
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'featured' | 'price-desc' | 'price-asc' | 'rating'>('featured');
-  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [apiProducts, setApiProducts] = useState<ApiProduct[] | null>(null);
   const [dataSource, setDataSource] = useState<'supabase' | 'local' | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [jumpPage, setJumpPage] = useState<string>('');
+  const ITEMS_PER_PAGE = 12;
   const [, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -62,12 +64,11 @@ export default function ProductsPage() {
   }, []);
 
   // Fetch products from API (Supabase-first, local fallback)
-  const fetchProducts = useCallback(async (brand: string, search: string, sort: string) => {
+  const fetchProducts = useCallback(async (brand: string, sort: string) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (brand && brand !== 'all') params.set('brand', brand);
-      if (search.trim()) params.set('search', search.trim());
       if (sort) params.set('sort', sort);
 
       const res = await fetch(`/api/products?${params.toString()}`);
@@ -87,40 +88,38 @@ export default function ProductsPage() {
 
   // Initial load
   useEffect(() => {
-    fetchProducts('all', '', 'featured');
+    fetchProducts('all', 'featured');
   }, [fetchProducts]);
 
   const handleBrandSelect = (brandId: string) => {
     setSelectedBrand(brandId);
     setIsDropdownOpen(false);
+    setCurrentPage(1);
     startTransition(() => {
-      fetchProducts(brandId, searchTerm, sortBy);
+      fetchProducts(brandId, sortBy);
     });
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    // Debounce search
-    const timer = setTimeout(() => {
-      fetchProducts(selectedBrand, value, sortBy);
-    }, 400);
-    return () => clearTimeout(timer);
   };
 
   const handleSortChange = (value: string) => {
     const newSort = value as 'featured' | 'price-desc' | 'price-asc' | 'rating';
     setSortBy(newSort);
-    fetchProducts(selectedBrand, searchTerm, newSort);
+    setCurrentPage(1);
+    fetchProducts(selectedBrand, newSort);
   };
 
-  // Use API products if available, otherwise fall back to static local data
+  // Merge API products with local rich specs
   let displayWatches = apiProducts
-    ? ALL_WATCHES.filter((w) => apiProducts.some((p) => p.id === w.id))
+    ? ALL_WATCHES.filter((w) => apiProducts.some((p) => p.id === w.id)).map((w) => {
+        const apiMatch = apiProducts.find((p) => p.id === w.id);
+        if (apiMatch?.images && apiMatch.images.length > 0) {
+          return { ...w, images: apiMatch.images as [string, string, ...string[]] };
+        }
+        return w;
+      })
     : [...ALL_WATCHES];
 
   // If API filtered results, apply same filter to local data for proper display
   if (apiProducts === null) {
-    // Local fallback filtering
     if (selectedBrand !== 'all') {
       const brandObj = ALL_BRANDS.find((b) => b.id === selectedBrand);
       if (brandObj && brandObj.id !== 'all') {
@@ -128,16 +127,6 @@ export default function ProductsPage() {
           (w) => w.brand.toLowerCase() === brandObj.name.toLowerCase()
         );
       }
-    }
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      displayWatches = displayWatches.filter(
-        (w) =>
-          w.name.toLowerCase().includes(term) ||
-          w.brand.toLowerCase().includes(term) ||
-          w.reference.toLowerCase().includes(term) ||
-          w.caliber.toLowerCase().includes(term)
-      );
     }
     if (sortBy === 'price-desc') {
       displayWatches.sort((a, b) => b.price - a.price);
@@ -147,13 +136,35 @@ export default function ProductsPage() {
       displayWatches.sort((a, b) => b.rating - a.rating);
     }
   } else {
-    // API gave us ordered IDs; preserve order
     const orderMap = new Map(apiProducts.map((p, i) => [p.id, i]));
     displayWatches.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
   }
 
   const currentBrandName =
     ALL_BRANDS.find((b) => b.id === selectedBrand)?.name || 'Tất Cả Thương Hiệu';
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(displayWatches.length / ITEMS_PER_PAGE));
+  const paginatedWatches = displayWatches.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const handlePageChange = (p: number) => {
+    if (p >= 1 && p <= totalPages) {
+      setCurrentPage(p);
+      window.scrollTo({ top: 360, behavior: 'smooth' });
+    }
+  };
+
+  const handleJumpPage = () => {
+    const p = parseInt(jumpPage.trim(), 10);
+    if (!isNaN(p) && p >= 1 && p <= totalPages) {
+      setCurrentPage(p);
+      setJumpPage('');
+      window.scrollTo({ top: 360, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0b0b0c] text-zinc-100 pt-28 pb-16 flex flex-col justify-between font-sans">
@@ -167,10 +178,7 @@ export default function ProductsPage() {
             </span>
           </div>
 
-          <h1
-            className="text-3xl sm:text-5xl font-serif font-light tracking-wide uppercase text-zinc-100"
-            style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
-          >
+          <h1 className="text-3xl sm:text-5xl font-light tracking-wide uppercase text-zinc-100">
             BỘ SƯU TẬP <span className="italic text-[#d4af37]">TUYỆT TÁC ĐỘC BẢN</span>
           </h1>
           <p className="mt-3 text-xs sm:text-sm text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
@@ -194,10 +202,10 @@ export default function ProductsPage() {
           )}
         </div>
 
-        {/* Filter Toolbar */}
-        <div className="py-8 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-zinc-800/40 relative z-30">
+        {/* Filter Toolbar without Search input */}
+        <div className="py-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-zinc-800/40 relative z-30">
           {/* Brand Dropdown — All 10 brands */}
-          <div className="relative w-full md:w-auto" ref={dropdownRef}>
+          <div className="relative w-full sm:w-auto" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -247,34 +255,19 @@ export default function ProductsPage() {
             </AnimatePresence>
           </div>
 
-          {/* Search & Sort Controls */}
-          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-            {/* Search Input */}
-            <div className="relative flex-1 md:w-64">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Tìm mã Ref, Calibre, tên..."
-                className="w-full bg-zinc-900/90 border border-zinc-800 rounded-full pl-9 pr-4 py-2.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
-              />
-              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            </div>
-
-            {/* Sort Select */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 rounded-full px-4 py-2.5 pr-8 appearance-none focus:outline-none focus:border-[#d4af37] cursor-pointer"
-              >
-                <option value="featured">Nổi Bật Nhất</option>
-                <option value="price-desc">Giá: Cao Đến Thấp</option>
-                <option value="price-asc">Giá: Thấp Đến Cao</option>
-                <option value="rating">Đánh Giá Cao Nhất</option>
-              </select>
-              <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+          {/* Sort Select */}
+          <div className="relative w-full sm:w-auto flex justify-end">
+            <select
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value)}
+              className="w-full sm:w-auto bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 rounded-full px-5 py-2.5 pr-9 appearance-none focus:outline-none focus:border-[#d4af37] cursor-pointer shadow-lg"
+            >
+              <option value="featured">Nổi Bật Nhất</option>
+              <option value="price-desc">Giá: Cao Đến Thấp</option>
+              <option value="price-asc">Giá: Thấp Đến Cao</option>
+              <option value="rating">Đánh Giá Cao Nhất</option>
+            </select>
+            <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
 
@@ -284,15 +277,13 @@ export default function ProductsPage() {
             <ProductSkeleton count={8} theme="dark" />
           ) : displayWatches.length === 0 ? (
             <div className="text-center py-20 bg-zinc-900/40 rounded-2xl border border-zinc-800 p-8">
-              <p className="text-base text-zinc-400 font-serif">
+              <p className="text-base text-zinc-400">
                 Không tìm thấy tuyệt tác nào phù hợp
-                {searchTerm && <> với từ khóa &ldquo;{searchTerm}&rdquo;</>}
               </p>
               <button
                 onClick={() => {
                   setSelectedBrand('all');
-                  setSearchTerm('');
-                  fetchProducts('all', '', sortBy);
+                  fetchProducts('all', sortBy);
                 }}
                 className="mt-4 text-xs uppercase tracking-widest text-gold-400 underline cursor-pointer"
               >
@@ -308,15 +299,90 @@ export default function ProductsPage() {
                       <Loader2 className="w-3 h-3 animate-spin" /> Đang tải...
                     </span>
                   ) : (
-                    `${displayWatches.length} tuyệt tác`
+                    `${displayWatches.length} tuyệt tác (Trang ${currentPage}/${totalPages})`
                   )}
                 </p>
               </div>
+
+              {/* 12 Products Per Page Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                {displayWatches.map((watch) => (
+                {paginatedWatches.map((watch) => (
                   <ProductCard key={watch.id} product={watch} theme="dark" />
                 ))}
               </div>
+
+              {/* Pagination Controls when > 12 products */}
+              {totalPages > 1 && (
+                <div className="mt-14 pt-8 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-5 font-sans">
+                  {/* Page Status */}
+                  <div className="text-xs text-zinc-400 font-mono">
+                    Hiển thị <span className="text-[#d4af37] font-bold">{(currentPage - 1) * ITEMS_PER_PAGE + 1} – {Math.min(currentPage * ITEMS_PER_PAGE, displayWatches.length)}</span> trên tổng số <span className="text-zinc-200 font-semibold">{displayWatches.length}</span> tuyệt tác
+                  </div>
+
+                  {/* Numbered Page Buttons and Jump to Page input */}
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    {/* Previous Button */}
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className="px-3.5 py-2 rounded-xl text-xs uppercase tracking-wider border border-zinc-800 bg-zinc-900/80 hover:border-[#d4af37] text-zinc-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                    >
+                      &larr; Trước
+                    </button>
+
+                    {/* Page Numbers 1, 2, 3, 4... */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`min-w-9 h-9 px-3 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer ${
+                          currentPage === pageNum
+                            ? "bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 shadow-lg shadow-gold-400/20 scale-105"
+                            : "border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-zinc-700"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                    {/* Next Button */}
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className="px-3.5 py-2 rounded-xl text-xs uppercase tracking-wider border border-zinc-800 bg-zinc-900/80 hover:border-[#d4af37] text-zinc-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                    >
+                      Sau &rarr;
+                    </button>
+
+                    {/* Jump to Page Input Box */}
+                    <div className="flex items-center gap-1.5 ml-3 pl-3 border-l border-zinc-800">
+                      <span className="text-[11px] text-zinc-400 uppercase tracking-wider">Trang:</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={totalPages}
+                        value={jumpPage}
+                        onChange={(e) => setJumpPage(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleJumpPage();
+                        }}
+                        placeholder="Số..."
+                        className="w-14 px-2 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 focus:border-[#d4af37] text-xs font-mono text-center text-zinc-100 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleJumpPage}
+                        className="px-3 py-1.5 rounded-xl bg-[#d4af37] text-zinc-950 text-xs font-bold uppercase tracking-wider hover:bg-gold-300 transition-all cursor-pointer"
+                      >
+                        Đến
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
