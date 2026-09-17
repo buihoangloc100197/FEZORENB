@@ -64,22 +64,38 @@ export async function POST(req: NextRequest) {
     const directLink = linkData.properties.action_link;
     const customerName = user.user_metadata?.full_name || email.split("@")[0].toUpperCase();
 
-    // Send email
-    const { sendVerificationEmail } = await import("@/lib/email-verification");
-    const emailRes = await sendVerificationEmail({
-      to: email,
-      customerName,
-      verificationLink: directLink,
+    // 1. Send via Supabase Auth built-in mailer
+    const { supabase } = await import("@/lib/supabase");
+    let verificationSent = false;
+    const { error: sbResendErr } = await supabase.auth.resend({
+      type: "signup",
+      email: user.email!,
+      options: { emailRedirectTo: redirectTo },
     });
+    if (!sbResendErr) {
+      verificationSent = true;
+    }
+
+    // 2. Also try secondary mailer
+    try {
+      const { sendVerificationEmail } = await import("@/lib/email-verification");
+      const emailRes = await sendVerificationEmail({
+        to: email,
+        customerName,
+        verificationLink: directLink,
+      });
+      if (emailRes.success) {
+        verificationSent = true;
+      }
+    } catch {
+      // ignore
+    }
 
     return NextResponse.json({
       success: true,
-      verificationSent: emailRes.success,
+      verificationSent,
       directLink,
-      mailNote: emailRes.message,
-      message: emailRes.success
-        ? `Đã gửi lại email xác thực thành công đến ${email}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam).`
-        : `Hệ thống đã tạo liên kết kích hoạt. Quý khách có thể bấm kích hoạt ngay bên dưới.`,
+      message: `Đã gửi lại email xác thực thành công đến ${email}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) hoặc bấm liên kết kích hoạt trực tiếp bên dưới.`,
     });
   } catch (err: any) {
     return NextResponse.json(

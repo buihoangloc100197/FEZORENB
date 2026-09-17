@@ -56,7 +56,7 @@ export default function Navbar() {
           </div>
 
           {/* ── Center Navigation Links ── */}
-          <nav className="hidden md:flex items-center space-x-8 text-xs uppercase tracking-[0.2em] text-zinc-300 font-medium">
+          <nav className="hidden md:flex items-center space-x-10 text-xs uppercase tracking-[0.25em] text-zinc-300 font-medium">
             <Link
               href="/products"
               className={`hover:text-[#d4af37] transition-colors py-1 relative ${
@@ -67,22 +67,6 @@ export default function Navbar() {
               {pathname === "/products" && (
                 <span className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#d4af37]" />
               )}
-            </Link>
-
-            <Link
-              href="/products?brand=rolex"
-              className={`hover:text-[#d4af37] transition-colors py-1 relative font-semibold ${
-                pathname === "/products" && typeof window !== "undefined" && window.location.search.includes("rolex") ? "text-[#d4af37]" : ""
-              }`}
-            >
-              Rolex
-            </Link>
-
-            <Link
-              href="/products?brand=patek-philippe"
-              className="hover:text-[#d4af37] transition-colors py-1"
-            >
-              Patek Philippe
             </Link>
 
             <Link

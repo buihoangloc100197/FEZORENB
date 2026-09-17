@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Existing user is NOT confirmed yet. Update user details and create fresh link
+        // Existing user is NOT confirmed yet. Update user details and resend confirmation
         userId = existingUser.id;
         await adminClient.auth.admin.updateUserById(userId, {
           password: trimmedPassword,
@@ -118,10 +118,46 @@ export async function POST(req: NextRequest) {
             role,
           },
         });
+
+        // Trigger Supabase resend
+        const { error: resendErr } = await supabase.auth.resend({
+          type: "signup",
+          email: cleanEmail,
+          options: { emailRedirectTo: redirectTo },
+        });
+        if (!resendErr) {
+          verificationSent = true;
+        }
+      } else {
+        // Sign up with Supabase client to trigger built-in confirmation email sending
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: trimmedPassword,
+          options: {
+            data: {
+              full_name: cleanFullName,
+              phone: cleanPhone,
+              role,
+            },
+            emailRedirectTo: redirectTo,
+          },
+        });
+
+        if (signUpError) {
+          return NextResponse.json(
+            { error: "Lỗi đăng ký tài khoản: " + signUpError.message },
+            { status: 400 }
+          );
+        }
+
+        if (signUpData?.user) {
+          userId = signUpData.user.id;
+          verificationSent = true;
+        }
       }
 
-      // 2. Generate Supabase verification link
-      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      // 2. Generate Supabase direct action link for immediate UI fallback
+      const { data: linkData } = await adminClient.auth.admin.generateLink({
         type: "signup",
         email: cleanEmail,
         password: trimmedPassword,
@@ -135,14 +171,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      if (linkError && !existingUser) {
-        return NextResponse.json(
-          { error: "Lỗi đăng ký tài khoản: " + linkError.message },
-          { status: 400 }
-        );
-      }
-
-      if (linkData?.user) {
+      if (linkData?.user && !userId) {
         userId = linkData.user.id;
       }
 
@@ -160,18 +189,20 @@ export async function POST(req: NextRequest) {
         directLink = linkData.properties.action_link;
       }
 
-      // 5. Send verification email
+      // 5. Send verification email via secondary channel as well
       if (directLink) {
-        const { sendVerificationEmail } = await import("@/lib/email-verification");
-        const emailRes = await sendVerificationEmail({
-          to: cleanEmail,
-          customerName: cleanFullName,
-          verificationLink: directLink,
-        });
-
-        verificationSent = emailRes.success;
-        if (!emailRes.success) {
-          mailNote = emailRes.message;
+        try {
+          const { sendVerificationEmail } = await import("@/lib/email-verification");
+          const emailRes = await sendVerificationEmail({
+            to: cleanEmail,
+            customerName: cleanFullName,
+            verificationLink: directLink,
+          });
+          if (emailRes.success) {
+            verificationSent = true;
+          }
+        } catch {
+          // ignore secondary mailer if Supabase mailer already handled it
         }
       }
 

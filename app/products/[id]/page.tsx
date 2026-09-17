@@ -13,7 +13,6 @@ import {
   RotateCcw,
   Sparkles,
   ArrowLeft,
-  Calendar,
   Check,
   Watch as WatchIcon,
   Compass,
@@ -215,14 +214,6 @@ export default function ProductDetailPage() {
                     <span>Thêm Vào Giỏ Hàng (Mở Drawer)</span>
                   </>
                 )}
-              </button>
-
-              <button
-                onClick={() => alert(`Quản gia VIP sẽ liên hệ trong 15 phút để sắp xếp phòng thử riêng tư cho chiếc ${watch.name}!`)}
-                className="w-full py-3.5 px-6 rounded-full border border-zinc-700 hover:border-gold-400/60 bg-zinc-900/50 text-zinc-200 hover:text-gold-200 text-xs tracking-widest uppercase font-medium transition-all flex items-center justify-center gap-2"
-              >
-                <Calendar className="w-4 h-4 text-gold-400" />
-                <span>Đặt Lịch Thử Kín Tại Boutique</span>
               </button>
             </div>
 

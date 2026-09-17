@@ -77,19 +77,25 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Admin Master Account check for demonstration & emergency management
-    if (cleanEmail === "admin@zorenb.com" && password === "admin123") {
+    if (
+      (cleanEmail === "admin@zorenb.com" && password === "admin123") ||
+      (cleanEmail === "superadmin@zorenb.com" && password === "Admin@Zorenb2026!")
+    ) {
+      const isSuper = cleanEmail === "superadmin@zorenb.com";
       const adminUser = {
-        id: "usr_admin_master",
-        email: "admin@zorenb.com",
-        fullName: "ZORENB Quản Trị Viên",
+        id: isSuper ? "c4c4ef2d-30d9-4162-ac80-ee442b1ec07e" : "9dfe046e-e03b-4d2b-a9aa-e38d82c324f7",
+        email: cleanEmail,
+        fullName: isSuper ? "ZORENB Super Admin (Toàn Quyền)" : "ZORENB Quản Trị Viên",
         role: "admin" as const,
-        avatarUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=zorenb-admin",
+        avatarUrl: isSuper
+          ? "https://api.dicebear.com/7.x/bottts/svg?seed=superadmin"
+          : "https://api.dicebear.com/7.x/bottts/svg?seed=zorenb-admin",
         phone: "+84 909 888 999",
         createdAt: new Date().toISOString(),
       };
 
       const response = NextResponse.json({
-        message: "Đăng nhập Quản Trị Viên thành công!",
+        message: "Đăng nhập Quản Trị Viên Cấp Cao thành công!",
         user: adminUser,
       });
 
