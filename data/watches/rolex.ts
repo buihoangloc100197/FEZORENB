@@ -151,5 +151,56 @@ export const ROLEX_WATCHES: Watch[] = [
     inStock: true,
     rating: 5.0,
     reviewsCount: 47
+  },
+  {
+    id: 'rolex-submariner-ai-test-edition-30k',
+    name: 'Rolex Submariner Date "AI Test Edition"',
+    subtitle: 'Ref. TEST-30K • Bản Khảo Nghiệm Hệ Thống 30.000 ₫ Cho AI & PayOS',
+    category: 'horology',
+    categoryLabel: 'Đồng Hồ Rolex',
+    brand: 'Rolex',
+    reference: 'TEST-30K',
+    collectionName: 'Submariner Lab',
+    price: 30000,
+    originalPrice: 50000,
+    currency: 'VND',
+    caseSize: '41mm',
+    caseThickness: '12.3mm',
+    caseMaterial: 'Oystersteel 904L',
+    bezelMaterial: 'Cerachrom gốm xanh lục xoay đơn hướng',
+    dialDescription: 'Mặt số đen mun dạ quang Chromalight hiển thị mã khảo nghiệm AI 30K',
+    braceletType: 'Oystersteel với hệ thống trượt Glidelock',
+    movementType: 'Automatic',
+    caliber: 'Calibre 3235 Perpetual',
+    powerReserve: '70 giờ',
+    waterResistance: '300m / 1,000 feet',
+    complications: ['Diver / Lặn Biển'],
+    jewelsCount: 31,
+    frequency: '28,800 vph (4 Hz)',
+    images: [
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-submariner-ai-test-edition-30k/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-submariner-ai-test-edition-30k/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-submariner-ai-test-edition-30k/image-3.jpg'
+    ],
+    description: 'Phiên bản đặc biệt phát hành với mức giá ưu đãi đặc quyền 30.000 ₫ nhằm mục đích khảo nghiệm hệ thống AI Concierge, bản nháp đơn hàng và thanh toán trực tiếp qua PayOS.',
+    details: [
+      'Mã tham chiếu: Ref. TEST-30K AI Concierge Special Edition',
+      'Giá bán thực nghiệm: 30.000 VNĐ để test toàn trình cổng PayOS và 3 AI Concierge',
+      'Trải nghiệm đầy đủ quy trình xác nhận email, lập hóa đơn điện tử tự động',
+      'Hỗ trợ quét mã QR ngân hàng thanh toán chuẩn VietQR / Napas247'
+    ],
+    specs: {
+      'Thương hiệu': 'Rolex (Geneva, Thụy Sĩ)',
+      'Bộ máy': 'Calibre 3235 Automatic',
+      'Đường kính': '41 mm',
+      'Giá khảo nghiệm': '30.000 ₫ (30K VNĐ)',
+      'Dự trữ năng lượng': '70 giờ',
+      'Cổng thanh toán': 'PayOS VietQR 30.000 ₫'
+    },
+    tag: 'Limited Edition',
+    isNew: true,
+    inStock: true,
+    rating: 5.0,
+    reviewsCount: 88
   }
 ];

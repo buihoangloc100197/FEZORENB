@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { User, Mail, Phone, Camera, Shield, ShoppingBag, Clock, ArrowRight, LogOut, Check, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatVND } from "@/lib/utils";
 import ZorenbLogo from "@/components/ZorenbLogo";
 
 export default function ProfilePage() {
@@ -331,7 +331,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <span className="text-xs font-mono font-bold text-[#d4af37] flex-shrink-0">
-                        ${formatPrice(product.price * quantity)}
+                        {formatVND(product.price * quantity, product.currency)}
                       </span>
                     </div>
                   ))}
@@ -398,9 +398,7 @@ export default function ProfilePage() {
                         <div className="text-right flex-shrink-0">
                           <p className="text-xs text-zinc-400">Tổng đầu tư</p>
                           <p className="text-sm font-mono font-bold text-zinc-100">
-                            {order.currency === "VND"
-                              ? `${Number(order.total_amount).toLocaleString("vi-VN")} ₫`
-                              : `$${formatPrice(order.total_amount)}`}
+                            {formatVND(Number(order.total_amount), order.currency)}
                           </p>
                         </div>
                       </div>

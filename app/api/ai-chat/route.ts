@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ALL_WATCHES } from '@/data/watches';
+import { formatVND } from '@/lib/utils';
 
 interface ChatMessage {
   role: 'user' | 'model' | 'assistant';
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     // Danh mục tham chiếu đồng hồ để AI tư vấn chính xác
     const watchCatalogContext = ALL_WATCHES.map(
-      (w) => `- ${w.name} (${w.brand}, Ref. ${w.reference}, Giá: $${w.price.toLocaleString()}, Caliber: ${w.caliber || 'In-house'}, Size: ${w.caseSize || '40mm'})`
+      (w) => `- ${w.name} (${w.brand}, Ref. ${w.reference}, Giá niêm yết: ${formatVND(w.price, w.currency)}, Caliber: ${w.caliber || 'In-house'}, Size: ${w.caseSize || '40mm'})`
     ).join('\n');
 
     // Gọi Google AI Studio với model hiện hành
@@ -149,19 +150,22 @@ export async function POST(req: NextRequest) {
     const lower = lastMessage.toLowerCase();
 
     // Nếu người dùng cung cấp thông tin đặt hàng (Tên, SĐT, Địa chỉ, Sản phẩm)
-    if (lower.includes('đặt') || lower.includes('mua') || lower.includes('order') || lower.includes('đơn hàng') || lower.includes('sđt') || lower.includes('09') || lower.includes('08') || lower.includes('03') || lower.includes('07')) {
-      const detectedWatch = ALL_WATCHES.find(w => lower.includes(w.brand.toLowerCase()) || lower.includes(w.name.toLowerCase())) || ALL_WATCHES[0];
+    if (lower.includes('đặt') || lower.includes('mua') || lower.includes('order') || lower.includes('đơn hàng') || lower.includes('sđt') || lower.includes('09') || lower.includes('08') || lower.includes('03') || lower.includes('07') || lower.includes('30k') || lower.includes('test')) {
+      const detectedWatch = ALL_WATCHES.find(w => 
+        (lower.includes('30k') || lower.includes('test')) ? w.id.includes('test') :
+        (lower.includes(w.brand.toLowerCase()) || lower.includes(w.name.toLowerCase()))
+      ) || ALL_WATCHES[0];
 
       return NextResponse.json({
         reply: `Kính thưa Quý khách, dựa trên dữ liệu Quý khách vừa cung cấp, Quản gia đã tổng hợp **Bản Nháp Đơn Hàng** cho Quý khách:
 
-📋 **BẢN NHÁP ĐƠN HÀNG THƯỢNG LƯU:**
+📋 **BẢN NHÁP ĐƠN HÀNG:**
 - **Tuyệt tác**: ${detectedWatch.name} (${detectedWatch.brand} - Ref. ${detectedWatch.reference})
-- **Trị giá**: $${detectedWatch.price.toLocaleString()} (Quy đổi ≈ ${(detectedWatch.price * 25400).toLocaleString('vi-VN')} VNĐ)
+- **Trị giá**: ${formatVND(detectedWatch.price, detectedWatch.currency)}
 - **Đặc quyền kèm theo**: Hộp da sơn mài thủ công, Thẻ chứng thực NFC Thụy Sĩ, Bảo hành quốc tế 5 năm.
 - **Hình thức phục vụ**: Vận chuyển chuyên cơ bọc thép VIP hoặc Phòng thử kín tại Boutique.
 
-*(Lưu ý an ninh: Tôi là AI độc lập, không truy cập backend và không tự ý trừ tiền hay tạo tài khoản. Quý khách vui lòng bấm nút "Thêm vào Tủ Đồ" trên trang sản phẩm để hoàn tất đơn hàng một cách bảo mật).*`,
+*(Lưu ý an ninh: Tôi là AI độc lập, không truy cập backend và không tự ý trừ tiền hay tạo tài khoản. Quý khách vui lòng bấm nút "Thêm Vào Giỏ Hàng" trên website để hoàn tất thanh toán bảo mật).*`,
       });
     }
 

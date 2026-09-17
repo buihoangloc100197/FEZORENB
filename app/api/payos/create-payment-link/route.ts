@@ -59,11 +59,13 @@ export async function POST(req: NextRequest) {
 
     // Build items with clean names and valid unit prices
     const formattedItems = items.map((item: {
-      product?: { id?: string; name?: string; price?: number };
+      product?: { id?: string; name?: string; price?: number; currency?: string };
       quantity?: number;
     }) => {
-      const unitPriceUSD = item.product?.price || 1000;
-      const unitPriceVND = Math.max(2000, Math.round(unitPriceUSD * EXCHANGE_RATE));
+      const isVND = item.product?.currency === "VND" || item.product?.id?.includes("test") || ((item.product?.price ?? 0) <= 50000 && item.product?.currency !== "$");
+      const unitPriceVND = isVND
+        ? Math.max(2000, Math.round(item.product?.price || 30000))
+        : Math.max(2000, Math.round((item.product?.price || 1000) * EXCHANGE_RATE));
       const qty = Math.max(1, Number(item.quantity) || 1);
       const cleanProdName = (item.product?.name || "Đồng hồ FEZORENB")
         .replace(/[^\p{L}\p{N}\s\-]/gu, "")

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight, Sparkles } from "lucide-react";
 import { ALL_WATCHES, Watch } from "@/data/watches";
-import { formatPrice } from "@/lib/utils";
+import { formatVND } from "@/lib/utils";
 
 // 10 Iconic Watches representing 10 world-class luxury brands
 const HOT_DROPS_WATCHES: (Watch & { origin: string })[] = [
@@ -192,11 +192,8 @@ export default function ProductSection() {
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm sm:text-base font-extrabold text-[#d4af37] tracking-tight">
-                        ${watch.price.toLocaleString()}
-                        <span className="text-[10px] text-zinc-400 font-normal ml-1">
-                          (~{formatPrice(watch.price * 25400)} ₫)
-                        </span>
+                      <div className="text-sm sm:text-base font-extrabold text-[#d4af37] tracking-tight font-mono">
+                        {formatVND(watch.price, watch.currency)}
                       </div>
 
                       <Link

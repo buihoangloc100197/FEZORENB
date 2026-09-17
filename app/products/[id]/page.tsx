@@ -152,11 +152,11 @@ export default function ProductDetailPage() {
             {/* Price Row in VND */}
             <div className="py-4 border-y border-zinc-800/80 flex items-baseline gap-3">
               <span className="text-2xl sm:text-3xl font-semibold font-mono text-gold-300">
-                {formatVND(watch.price)}
+                {formatVND(watch.price, watch.currency)}
               </span>
               {watch.originalPrice && (
                 <span className="text-sm font-mono text-zinc-500 line-through">
-                  {formatVND(watch.originalPrice)}
+                  {formatVND(watch.originalPrice, watch.currency)}
                 </span>
               )}
               <span className="text-[11px] text-emerald-400 font-medium tracking-wider uppercase ml-auto">

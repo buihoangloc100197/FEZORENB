@@ -157,11 +157,11 @@ export default function ProductCard({ product, theme = "dark" }: ProductCardProp
         <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-sm sm:text-base font-bold font-mono tracking-tight text-[#d4af37]">
-              {formatVND(product.price)}
+              {formatVND(product.price, product.currency)}
             </span>
             {product.originalPrice && (
               <span className="text-[10px] font-mono text-zinc-500 line-through">
-                {formatVND(product.originalPrice)}
+                {formatVND(product.originalPrice, product.currency)}
               </span>
             )}
           </div>

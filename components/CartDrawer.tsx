@@ -7,13 +7,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, ShoppingBag, ShieldCheck, ArrowRight, Trash2, CreditCard, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { formatPrice } from "@/lib/utils";
+import { formatVND, getPriceVND } from "@/lib/utils";
 
 export default function CartDrawer() {
   const { isCartOpen, closeCart, items, updateQuantity, removeItem, subtotal, totalCount } = useCart();
   const { user } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const subtotalVND = items.reduce((acc, item) => {
+    return acc + getPriceVND(item.product) * item.quantity;
+  }, 0);
 
   // Prevent background scrolling when cart is open
   useEffect(() => {
@@ -183,7 +187,7 @@ export default function CartDrawer() {
                         {/* Price & Side Quantity Controls */}
                         <div className="flex items-center justify-between mt-3">
                           <div className="text-xs font-semibold text-[#d4af37] font-mono">
-                            ${formatPrice(product.price * quantity)}
+                            {formatVND(getPriceVND(product) * quantity, 'VND')}
                           </div>
 
                           {/* Number Quantity with Plus/Minus buttons */}
@@ -226,18 +230,12 @@ export default function CartDrawer() {
                   <div className="space-y-1.5 pt-1 font-sans">
                     <div className="flex justify-between text-xs text-zinc-400">
                       <span>Tạm tính ({totalCount} sản phẩm)</span>
-                      <span className="text-zinc-200 font-mono font-medium">${formatPrice(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-zinc-400">
-                      <span>Quy đổi PayOS (tạm ước tính)</span>
-                      <span className="text-emerald-400 font-mono font-medium">
-                        {formatPrice(subtotal * 25400)} ₫
-                      </span>
+                      <span className="text-zinc-200 font-mono font-medium">{formatVND(subtotalVND, 'VND')}</span>
                     </div>
                     <div className="flex justify-between text-sm font-semibold pt-2 border-t border-zinc-800 text-zinc-100">
                       <span className="uppercase tracking-wider">Tổng Thanh Toán</span>
                       <span className="text-base text-[#d4af37] font-mono font-bold">
-                        ${formatPrice(subtotal)}
+                        {formatVND(subtotalVND, 'VND')}
                       </span>
                     </div>
                   </div>
