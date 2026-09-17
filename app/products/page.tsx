@@ -209,10 +209,17 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full sm:w-80 px-5 py-3 rounded-2xl bg-[#141419] border border-[#d4af37]/40 hover:border-[#d4af37] text-zinc-100 flex items-center justify-between gap-3 shadow-xl transition-all duration-300 cursor-pointer"
+              className="w-full sm:w-84 px-5 py-3 rounded-2xl bg-[#141419] border border-[#d4af37]/40 hover:border-[#d4af37] text-zinc-100 flex items-center justify-between gap-3 shadow-xl transition-all duration-300 cursor-pointer group"
+              aria-label="Mở menu thương hiệu"
             >
-              <div className="flex items-center gap-2.5">
-                <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-medium">Hãng:</span>
+              <div className="flex items-center gap-3">
+                {/* Dấu 3 gạch ngang (3-line Menu Icon) */}
+                <div className="w-4.5 h-3.5 flex flex-col justify-between items-start flex-shrink-0">
+                  <span className="w-4.5 h-[2px] bg-[#d4af37] rounded-full transition-all group-hover:w-3.5" />
+                  <span className="w-3.5 h-[2px] bg-[#d4af37] rounded-full transition-all group-hover:w-4.5" />
+                  <span className="w-4 h-[2px] bg-[#d4af37] rounded-full transition-all group-hover:w-3" />
+                </div>
+                <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold">Menu Hãng:</span>
                 <span className="text-xs font-bold text-[#d4af37] tracking-wider uppercase truncate">
                   {currentBrandName}
                 </span>

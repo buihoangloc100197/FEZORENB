@@ -164,6 +164,11 @@ export default function ProductCard({ product, theme = "dark" }: ProductCardProp
                 {formatVND(product.originalPrice, product.currency)}
               </span>
             )}
+            {product.shippingFee && product.shippingFee > 0 ? (
+              <span className="text-[9px] font-mono text-zinc-400">
+                + {formatVND(product.shippingFee, product.currency)} ship
+              </span>
+            ) : null}
           </div>
 
           <Link

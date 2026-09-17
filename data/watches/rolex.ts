@@ -202,5 +202,59 @@ export const ROLEX_WATCHES: Watch[] = [
     inStock: true,
     rating: 5.0,
     reviewsCount: 88
+  },
+  {
+    id: 'rolex-datejust-ai-special-50k',
+    name: 'Rolex Datejust 36 "Special Edition 50K"',
+    subtitle: 'Ref. TEST-50K • Giá 50.000 ₫ • Phí Ship Giao Hàng 30.000 ₫',
+    category: 'horology',
+    categoryLabel: 'Đồng Hồ Rolex',
+    brand: 'Rolex',
+    reference: 'TEST-50K',
+    collectionName: 'Datejust Lab',
+    price: 50000,
+    shippingFee: 30000,
+    originalPrice: 90000,
+    currency: 'VND',
+    caseSize: '36mm',
+    caseThickness: '11.5mm',
+    caseMaterial: 'Oystersteel 904L',
+    bezelMaterial: 'Vành khía rãnh Fluted tinh xảo',
+    dialDescription: 'Mặt số xanh Olive hoạ tiết cọ xà cừ phát quang Chromalight',
+    braceletType: 'Dây Jubilee 5 mối nối với khóa Oysterclasp',
+    movementType: 'Automatic',
+    caliber: 'Calibre 3235 Perpetual',
+    powerReserve: '70 giờ',
+    waterResistance: '100m / 330 feet',
+    complications: ['Skeleton / Lộ Cơ'],
+    jewelsCount: 31,
+    frequency: '28,800 vph (4 Hz)',
+    images: [
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-datejust-ai-special-50k/image-1.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-datejust-ai-special-50k/image-2.jpg',
+      'https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-datejust-ai-special-50k/image-3.jpg'
+    ],
+    description: 'Phiên bản đặc biệt phát hành với mức giá ưu đãi trải nghiệm 50.000 ₫ (phí ship giao hàng 30.000 ₫, tổng thanh toán 80.000 ₫) phục vụ kiểm thử toàn diện quy trình đặt hàng, AI và thanh toán PayOS.',
+    details: [
+      'Mã tham chiếu: Ref. TEST-50K Special Edition',
+      'Giá bán sản phẩm: 50.000 VNĐ',
+      'Phí vận chuyển (Phí ship): 30.000 VNĐ toàn quốc',
+      'Tổng thanh toán: Đúng 80.000 VNĐ qua cổng thanh toán PayOS',
+      'Đầy đủ hóa đơn điện tử tự động và bảo hành chính hãng'
+    ],
+    specs: {
+      'Thương hiệu': 'Rolex (Geneva, Thụy Sĩ)',
+      'Bộ máy': 'Calibre 3235 Automatic',
+      'Kích thước': '36 mm',
+      'Giá sản phẩm': '50.000 ₫ (50K VNĐ)',
+      'Phí ship': '30.000 ₫ (30K VNĐ)',
+      'Tổng thanh toán': '80.000 ₫ (80K VNĐ)',
+      'Cổng thanh toán': 'PayOS VietQR 80.000 ₫'
+    },
+    tag: 'Limited Edition',
+    isNew: true,
+    inStock: true,
+    rating: 5.0,
+    reviewsCount: 120
   }
 ];

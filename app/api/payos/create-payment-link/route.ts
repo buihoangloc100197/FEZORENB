@@ -80,6 +80,21 @@ export async function POST(req: NextRequest) {
       };
     });
 
+    // Calculate shipping fee if any item requires it (e.g. 50k test product with 30k shipping fee)
+    const shippingFeeTotal = items.reduce((acc: number, item: any) => {
+      const fee = item.product?.shippingFee || (item.product?.id?.includes('50k') ? 30000 : 0);
+      return acc + (Number(fee) || 0) * (Number(item.quantity) || 1);
+    }, 0);
+
+    if (shippingFeeTotal > 0) {
+      formattedItems.push({
+        name: "Phí vận chuyển giao hàng (Ship)",
+        quantity: 1,
+        price: shippingFeeTotal,
+        productId: "shipping-fee-30k",
+      });
+    }
+
     const calculatedTotalVND = formattedItems.reduce(
       (acc: number, cur: any) => acc + cur.price * cur.quantity,
       0

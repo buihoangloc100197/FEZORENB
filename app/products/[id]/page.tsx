@@ -150,18 +150,28 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Price Row in VND */}
-            <div className="py-4 border-y border-zinc-800/80 flex items-baseline gap-3">
-              <span className="text-2xl sm:text-3xl font-semibold font-mono text-gold-300">
-                {formatVND(watch.price, watch.currency)}
-              </span>
-              {watch.originalPrice && (
-                <span className="text-sm font-mono text-zinc-500 line-through">
-                  {formatVND(watch.originalPrice, watch.currency)}
+            <div className="py-4 border-y border-zinc-800/80 space-y-1.5">
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl sm:text-3xl font-semibold font-mono text-gold-300">
+                  {formatVND(watch.price, watch.currency)}
                 </span>
+                {watch.originalPrice && (
+                  <span className="text-sm font-mono text-zinc-500 line-through">
+                    {formatVND(watch.originalPrice, watch.currency)}
+                  </span>
+                )}
+                <span className="text-[11px] text-emerald-400 font-medium tracking-wider uppercase ml-auto">
+                  {watch.inStock ? 'Sẵn Có Tại Boutique' : 'Đặt Hàng Kín'}
+                </span>
+              </div>
+              {watch.shippingFee && (
+                <div className="flex items-center gap-2 text-xs text-zinc-400 pt-1">
+                  <span className="px-2 py-0.5 rounded bg-zinc-800/80 border border-[#d4af37]/30 text-[#d4af37] font-mono font-medium">
+                    Phí ship: {formatVND(watch.shippingFee, 'VND')}
+                  </span>
+                  <span>• Tổng thanh toán: <strong className="text-zinc-100 font-mono">{formatVND(watch.price + watch.shippingFee, 'VND')}</strong></span>
+                </div>
               )}
-              <span className="text-[11px] text-emerald-400 font-medium tracking-wider uppercase ml-auto">
-                {watch.inStock ? 'Sẵn Có Tại Boutique' : 'Đặt Hàng Kín'}
-              </span>
             </div>
 
             {/* Narrative Description */}

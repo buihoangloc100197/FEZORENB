@@ -21,6 +21,7 @@ export interface Product {
   caliber?: string;
   caseSize?: string;
   complications?: string[];
+  shippingFee?: number;
 }
 
 export interface CartItem {

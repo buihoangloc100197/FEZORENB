@@ -19,6 +19,13 @@ export default function CartDrawer() {
     return acc + getPriceVND(item.product) * item.quantity;
   }, 0);
 
+  const shippingFee = items.reduce((acc, item) => {
+    const fee = item.product.shippingFee || (item.product.id?.includes('50k') ? 30000 : 0);
+    return acc + fee * item.quantity;
+  }, 0);
+
+  const totalVND = subtotalVND + shippingFee;
+
   // Prevent background scrolling when cart is open
   useEffect(() => {
     if (isCartOpen) {
@@ -232,10 +239,16 @@ export default function CartDrawer() {
                       <span>Tạm tính ({totalCount} sản phẩm)</span>
                       <span className="text-zinc-200 font-mono font-medium">{formatVND(subtotalVND, 'VND')}</span>
                     </div>
+                    {shippingFee > 0 && (
+                      <div className="flex justify-between text-xs text-zinc-400">
+                        <span>Phí vận chuyển (Phí ship)</span>
+                        <span className="text-[#d4af37] font-mono font-medium">{formatVND(shippingFee, 'VND')}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm font-semibold pt-2 border-t border-zinc-800 text-zinc-100">
                       <span className="uppercase tracking-wider">Tổng Thanh Toán</span>
                       <span className="text-base text-[#d4af37] font-mono font-bold">
-                        {formatVND(subtotalVND, 'VND')}
+                        {formatVND(totalVND, 'VND')}
                       </span>
                     </div>
                   </div>
