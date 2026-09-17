@@ -15,8 +15,15 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isStaff: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (data: { email: string; password: string; fullName: string; phone?: string }) => Promise<{ success: boolean; error?: string }>;
+  register: (data: { email: string; password: string; fullName: string; phone?: string }) => Promise<{
+    success: boolean;
+    error?: string;
+    directLink?: string;
+    verificationSent?: boolean;
+    message?: string;
+  }>;
   logout: () => Promise<void>;
   updateProfile: (data: { fullName?: string; phone?: string; avatarUrl?: string }) => Promise<{ success: boolean; error?: string }>;
 }
@@ -89,7 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(data.user);
       localStorage.setItem("zorenb_current_user", JSON.stringify(data.user));
-      return { success: true };
+      return {
+        success: true,
+        directLink: data.directLink,
+        verificationSent: data.verificationSent,
+        message: data.message,
+      };
     } catch (err: any) {
       return { success: false, error: err.message };
     }
@@ -131,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isLoading,
         isAdmin: user?.role === "admin",
+        isStaff: user?.role === "admin" || user?.role === "staff",
         login,
         register,
         logout,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServiceSupabase, isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 // Regular expression for validating standard email format (RFC 5322 compliant)
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const { email, password, fullName, phone } = body;
 
-    // 1. Validate Email (Bắt buộc phải có email hợp lệ)
+    // 1. Validate Email
     if (!email || typeof email !== "string") {
       return NextResponse.json(
         { error: "Bắt buộc phải cung cấp địa chỉ email để đăng ký tài khoản." },
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Validate Password (Chống mật khẩu rỗng " " hoặc injection)
+    // 2. Validate Password
     if (!password || typeof password !== "string") {
       return NextResponse.json(
         { error: "Bắt buộc phải nhập mật khẩu." },
@@ -82,121 +82,121 @@ export async function POST(req: NextRequest) {
     const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`;
 
     let userId = "usr_" + Math.random().toString(36).substring(2, 11);
-    let requiresEmailConfirmation = false;
 
     if (isSupabaseConfigured) {
       const adminClient = getServiceSupabase();
-      // Resolve site origin dynamically, preferring public site url if deployed
       const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
       const proto = req.headers.get("x-forwarded-proto") || "https";
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (host ? `${proto}://${host}` : req.nextUrl.origin);
       const redirectTo = `${siteUrl}/auth/callback?next=/auth/confirmed`;
 
-      // 1. Try generate confirmation link directly via admin client
-      // This generates a secure Supabase verification link that we can send via Resend!
-      let verificationSentViaResend = false;
-      try {
-        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-          type: "signup",
-          email: cleanEmail,
-          password: trimmedPassword,
-          options: {
-            data: {
-              full_name: cleanFullName,
-              phone: cleanPhone,
-              role,
-            },
-            redirectTo,
-          },
-        });
+      // 1. Check if user already exists in auth.users
+      const { data: existingUserCheck } = await adminClient.auth.admin.listUsers();
+      const existingUser = existingUserCheck?.users?.find(
+        (u) => u.email?.toLowerCase() === cleanEmail
+      );
 
-        if (linkData?.user) {
-          userId = linkData.user.id;
-          requiresEmailConfirmation = true;
+      let directLink: string | null = null;
+      let verificationSent = false;
+      let mailNote = "";
 
-          // Upsert profile
-          await adminClient.from("profiles").upsert({
-            id: userId,
-            full_name: cleanFullName,
-            phone: cleanPhone,
-            avatar_url: avatarUrl,
-            role,
-          });
-
-          // Send luxury verification email using RESEND
-          if (linkData.properties?.action_link) {
-            const { sendVerificationEmail } = await import("@/lib/email-verification");
-            const resendRes = await sendVerificationEmail({
-              to: cleanEmail,
-              customerName: cleanFullName,
-              verificationLink: linkData.properties.action_link,
-            });
-            if (resendRes.success) {
-              verificationSentViaResend = true;
-            }
-          }
-        } else if (linkError) {
-          // If already registered, return clear message
-          if (
-            linkError.message.toLowerCase().includes("already registered") ||
-            linkError.message.toLowerCase().includes("already exists")
-          ) {
-            return NextResponse.json(
-              { error: "Địa chỉ email này đã được đăng ký. Quý khách vui lòng đăng nhập hoặc dùng email khác." },
-              { status: 400 }
-            );
-          }
-          console.warn("generateLink error, falling back to signUp:", linkError.message);
-        }
-      } catch (genErr) {
-        console.warn("Failed generateLink, trying standard signUp:", genErr);
-      }
-
-      // 2. Fallback to standard Supabase signUp if not sent via Resend
-      if (!verificationSentViaResend && !userId.startsWith("usr_")) {
-        const { data: signUpData, error: signUpError } = await adminClient.auth.signUp({
-          email: cleanEmail,
-          password: trimmedPassword,
-          options: {
-            data: {
-              full_name: cleanFullName,
-              phone: cleanPhone,
-              role,
-            },
-            emailRedirectTo: redirectTo,
-          },
-        });
-
-        if (signUpError) {
-          if (
-            signUpError.message.toLowerCase().includes("already registered") ||
-            signUpError.message.toLowerCase().includes("already exists")
-          ) {
-            return NextResponse.json(
-              { error: "Địa chỉ email này đã được đăng ký. Quý khách vui lòng đăng nhập hoặc dùng email khác." },
-              { status: 400 }
-            );
-          }
+      if (existingUser) {
+        if (existingUser.email_confirmed_at) {
           return NextResponse.json(
-            { error: "Lỗi đăng ký tài khoản: " + signUpError.message },
+            { error: "Địa chỉ email này đã được đăng ký và xác thực. Quý khách vui lòng đăng nhập vào hệ thống." },
             { status: 400 }
           );
         }
 
-        if (signUpData.user) {
-          userId = signUpData.user.id;
-          requiresEmailConfirmation = !signUpData.session;
-
-          // Upsert into profiles table
-          await adminClient.from("profiles").upsert({
-            id: userId,
+        // Existing user is NOT confirmed yet. Update user details and create fresh link
+        userId = existingUser.id;
+        await adminClient.auth.admin.updateUserById(userId, {
+          password: trimmedPassword,
+          user_metadata: {
             full_name: cleanFullName,
             phone: cleanPhone,
-            avatar_url: avatarUrl,
             role,
-          });
+          },
+        });
+      }
+
+      // 2. Generate Supabase verification link
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: "signup",
+        email: cleanEmail,
+        password: trimmedPassword,
+        options: {
+          data: {
+            full_name: cleanFullName,
+            phone: cleanPhone,
+            role,
+          },
+          redirectTo,
+        },
+      });
+
+      if (linkError && !existingUser) {
+        return NextResponse.json(
+          { error: "Lỗi đăng ký tài khoản: " + linkError.message },
+          { status: 400 }
+        );
+      }
+
+      if (linkData?.user) {
+        userId = linkData.user.id;
+      }
+
+      // 3. Save / update profile in public.profiles table
+      await adminClient.from("profiles").upsert({
+        id: userId,
+        full_name: cleanFullName,
+        phone: cleanPhone,
+        avatar_url: avatarUrl,
+        role,
+      });
+
+      // 4. Capture verification link
+      if (linkData?.properties?.action_link) {
+        directLink = linkData.properties.action_link;
+      }
+
+      // 5. Send verification email
+      if (directLink) {
+        const { sendVerificationEmail } = await import("@/lib/email-verification");
+        const emailRes = await sendVerificationEmail({
+          to: cleanEmail,
+          customerName: cleanFullName,
+          verificationLink: directLink,
+        });
+
+        verificationSent = emailRes.success;
+        if (!emailRes.success) {
+          mailNote = emailRes.message;
         }
       }
+
+      const newUser = {
+        id: userId,
+        email: cleanEmail,
+        fullName: cleanFullName,
+        phone: cleanPhone,
+        avatarUrl,
+        role,
+        requiresEmailConfirmation: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      return NextResponse.json({
+        success: true,
+        requiresEmailConfirmation: true,
+        verificationSent,
+        directLink,
+        mailNote,
+        message: verificationSent
+          ? `Đăng ký thành công! Hệ thống ZORENB đã gửi email xác thực đến ${cleanEmail}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) và bấm vào liên kết xác thực để kích hoạt tài khoản chính chủ trước khi đăng nhập.`
+          : `Đăng ký thành công! Để kích hoạt tài khoản ngay vào cơ sở dữ liệu dự án ZORENB, Quý khách vui lòng bấm vào nút kích hoạt bên dưới.`,
+        user: newUser,
+      });
     }
 
     const newUser = {
@@ -206,30 +206,16 @@ export async function POST(req: NextRequest) {
       phone: cleanPhone,
       avatarUrl,
       role,
-      requiresEmailConfirmation,
+      requiresEmailConfirmation: true,
       createdAt: new Date().toISOString(),
     };
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
-      message: requiresEmailConfirmation
-        ? `Đăng ký thành công! Hệ thống ZORENB đã gửi email xác nhận đến ${cleanEmail}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) để kích hoạt tài khoản chính chủ.`
-        : "Đăng ký thành công!",
-      requiresEmailConfirmation,
+      requiresEmailConfirmation: true,
+      message: `Đăng ký thành công! Hệ thống ZORENB đã tạo tài khoản cho ${cleanEmail}.`,
       user: newUser,
     });
-
-    // Only set active session cookie if email doesn't require separate confirmation
-    if (!requiresEmailConfirmation) {
-      response.cookies.set("zorenb_session", JSON.stringify(newUser), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7,
-        path: "/",
-      });
-    }
-
-    return response;
   } catch (error: any) {
     return NextResponse.json(
       { error: "Lỗi hệ thống khi đăng ký: " + error.message },

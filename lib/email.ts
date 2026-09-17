@@ -64,7 +64,7 @@ function buildInvoiceHtml(params: SendOrderConfirmationParams): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Xác Nhận Đơn Hàng FEZORENB #${orderCode}</title>
+  <title>Xác Nhận Đơn Hàng ZORENB #${orderCode}</title>
 </head>
 <body style="margin:0; padding:0; background:#0b0b0c; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0b0b0c; padding:40px 0;">
@@ -75,8 +75,8 @@ function buildInvoiceHtml(params: SendOrderConfirmationParams): string {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#0d0d10 0%,#1a1a24 100%); padding:40px 40px 32px; text-align:center; border-bottom:1px solid #24242e;">
-              <div style="display:inline-block; background:#d4af37; color:#0b0b0c; font-size:10px; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; padding:6px 16px; border-radius:20px; margin-bottom:20px;">
-                FEZORENB • HAUTE HORLOGERIE
+              <div style="display:inline-block; background:#d4af37; color:#0b0b0c; font-size:11px; font-weight:800; letter-spacing:0.35em; text-transform:uppercase; padding:6px 18px; border-radius:20px; margin-bottom:20px;">
+                ZORENB • HAUTE HORLOGERIE
               </div>
               <h1 style="margin:0; color:#f4f4f5; font-size:28px; font-weight:300; letter-spacing:0.05em; text-transform:uppercase; font-family:Georgia, serif;">
                 Cảm Ơn Quý Khách
@@ -105,7 +105,7 @@ function buildInvoiceHtml(params: SendOrderConfirmationParams): string {
               </p>
               <p style="margin:0 0 24px; color:#f4f4f5; font-size:15px; line-height:1.7;">
                 Xin chào <strong style="color:#d4af37;">${customerName}</strong>,<br/>
-                FEZORENB trân trọng cảm ơn Quý khách đã tin tưởng và lựa chọn những tuyệt phẩm đồng hồ haute horlogerie từ chúng tôi. Đơn hàng của Quý khách đang được đội ngũ chuyên gia xử lý và chuẩn bị giao hàng trong thời gian sớm nhất.
+                <strong>ZORENB</strong> trân trọng cảm ơn Quý khách đã tin tưởng và lựa chọn những tuyệt phẩm đồng hồ haute horlogerie từ chúng tôi. Đơn hàng của Quý khách đang được đội ngũ chuyên gia xử lý và chuẩn bị giao hàng trong thời gian sớm nhất.
               </p>
 
               <!-- Order Meta -->
@@ -190,8 +190,8 @@ function buildInvoiceHtml(params: SendOrderConfirmationParams): string {
           <!-- Footer -->
           <tr>
             <td style="background:#0d0d10; padding:24px 40px; border-top:1px solid #24242e; text-align:center;">
-              <p style="margin:0 0 8px; color:#52525b; font-size:12px;">
-                FEZORENB — Haute Horlogerie Boutique
+              <p style="margin:0 0 8px; color:#d4af37; font-size:12px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;">
+                ZORENB — Haute Horlogerie Boutique
               </p>
               <p style="margin:0; color:#3f3f46; font-size:11px;">
                 Nếu Quý khách có thắc mắc, vui lòng liên hệ: <span style="color:#d4af37;">support@fezorenb.com</span>
@@ -207,21 +207,54 @@ function buildInvoiceHtml(params: SendOrderConfirmationParams): string {
 </html>`;
 }
 
+import nodemailer from "nodemailer";
+
 /** Send order confirmation email */
 export async function sendOrderConfirmationEmail(
   params: SendOrderConfirmationParams
 ): Promise<{ success: boolean; message: string; emailId?: string }> {
   const html = buildInvoiceHtml(params);
-  const subject = `✨ FEZORENB — Xác Nhận Đơn Hàng #${params.orderCode}`;
+  const subject = `✨ ZORENB — Xác Nhận Đơn Hàng #${params.orderCode}`;
 
+  // 1. Try Custom SMTP first if configured
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: process.env.SMTP_FROM || `ZORENB <${process.env.SMTP_USER}>`,
+        to: params.to,
+        subject,
+        html,
+      });
+
+      return {
+        success: true,
+        message: `Email xác nhận đơn hàng đã gửi thành công qua SMTP đến ${params.to}`,
+        emailId: info.messageId,
+      };
+    } catch (smtpErr: unknown) {
+      const msg = smtpErr instanceof Error ? smtpErr.message : "SMTP error";
+      console.warn("SMTP order invoice sending error:", msg);
+    }
+  }
+
+  // 2. Try Resend
   const resendApiKey = process.env.RESEND_API_KEY;
 
-  // Use Resend if API key is configured
   if (resendApiKey && !resendApiKey.startsWith("re_placeholder")) {
     try {
       const fromEmail =
         process.env.RESEND_FROM_EMAIL ||
-        "FEZORENB <onboarding@resend.dev>";
+        "ZORENB <onboarding@resend.dev>";
 
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",

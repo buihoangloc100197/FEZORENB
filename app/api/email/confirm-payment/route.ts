@@ -72,6 +72,18 @@ export async function POST(req: NextRequest) {
       }),
     });
 
+    // Also update order status in Supabase database to paid
+    try {
+      const { getServiceSupabase, isSupabaseConfigured } = await import("@/lib/supabase");
+      if (isSupabaseConfigured && orderCode) {
+        const db = getServiceSupabase();
+        const codeStr = String(orderCode);
+        await db.from("orders").update({ status: "paid" }).eq("payos_order_id", codeStr);
+      }
+    } catch {
+      // ignore
+    }
+
     if (!result.success) {
       return NextResponse.json(
         { error: result.message },

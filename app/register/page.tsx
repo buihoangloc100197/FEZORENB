@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail, User, Phone, Check, ShieldCheck } from "lucide-react";
+import { ArrowRight, Lock, Mail, User, Phone, Check, ShieldCheck, Sparkles, RefreshCw } from "lucide-react";
 import ZorenbLogo from "@/components/ZorenbLogo";
 import { useAuth } from "@/context/AuthContext";
 
@@ -16,10 +16,38 @@ export default function RegisterPage() {
   });
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [successInfo, setSuccessInfo] = useState<string | null>(null);
+  const [directLink, setDirectLink] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register } = useAuth();
   const router = useRouter();
+
+  const handleResend = async () => {
+    if (!registeredEmail) return;
+    setIsResending(true);
+    setResendStatus(null);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: registeredEmail }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.directLink) setDirectLink(data.directLink);
+        setResendStatus(data.message || "Đã gửi lại email xác thực thành công.");
+      } else {
+        setResendStatus(data.error || "Gửi lại email thất bại.");
+      }
+    } catch {
+      setResendStatus("Lỗi kết nối máy chủ khi gửi lại.");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +63,11 @@ export default function RegisterPage() {
 
     if (result.success) {
       setRegisteredEmail(formData.email);
+      setDirectLink(result.directLink || null);
+      setVerificationSent(!!result.verificationSent);
       setSuccessInfo(
-        `Chúng tôi đã gửi thư xác nhận đến ${formData.email}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) và nhấn vào liên kết để xác thực tài khoản chính chủ trước khi đăng nhập.`
+        result.message ||
+        `Chúng tôi đã khởi tạo tài khoản cho ${formData.email}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) hoặc bấm nút kích hoạt trực tiếp bên dưới.`
       );
     } else {
       setErrorMessage(result.error || "Đăng ký không thành công.");
@@ -138,23 +169,76 @@ export default function RegisterPage() {
           </div>
 
           {successInfo ? (
-            <div className="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
-                <Mail className="w-6 h-6" />
+            <div className="p-6 bg-zinc-900/60 border border-gold-400/30 rounded-3xl text-center space-y-5 shadow-2xl backdrop-blur-md">
+              <div className="relative inline-block">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                  <Mail className="w-8 h-8" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#121217] border border-[#d4af37]/60 flex items-center justify-center text-[#d4af37]">
+                  <Sparkles className="w-3 h-3" />
+                </div>
               </div>
-              <h3 className="text-base font-bold text-zinc-100 uppercase tracking-wider">
-                Xác Thực Email Chính Chủ
-              </h3>
-              <p className="text-xs text-zinc-300 leading-relaxed font-light">
-                {successInfo}
-              </p>
-              <div className="pt-2">
+
+              <div>
+                <span className="text-[10px] uppercase tracking-[0.3em] text-[#d4af37] font-semibold">
+                  Bảo Chứng Điện Tử ZORENB
+                </span>
+                <h3 className="text-xl font-light uppercase tracking-wider text-zinc-100 mt-1 font-serif">
+                  Xác Thực Tài Khoản Thành Viên
+                </h3>
+              </div>
+
+              <div className="text-xs text-zinc-300 leading-relaxed font-light space-y-2">
+                <p>{successInfo}</p>
+                {registeredEmail && (
+                  <div className="inline-block px-3.5 py-1 rounded-full bg-black/60 border border-zinc-800 text-[11px] font-mono text-emerald-400">
+                    {registeredEmail}
+                  </div>
+                )}
+              </div>
+
+              {/* Direct Activation Button */}
+              {directLink && (
+                <div className="pt-2 space-y-2">
+                  <a
+                    href={directLink}
+                    className="w-full py-4 px-6 rounded-full bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-gold-400/25 hover:scale-[1.01] transition-all"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Kích Hoạt Tài Khoản Ngay Lập Tức</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <p className="text-[11px] text-zinc-400 font-light">
+                    (Bấm nút trên để kích hoạt tài khoản và lưu trực tiếp vào cơ sở dữ liệu ZORENB)
+                  </p>
+                </div>
+              )}
+
+              {/* Resend status message */}
+              {resendStatus && (
+                <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-amber-300">
+                  {resendStatus}
+                </div>
+              )}
+
+              {/* Secondary actions: Resend or Login */}
+              <div className="pt-3 border-t border-zinc-800/80 flex flex-col sm:flex-row gap-2.5 justify-center">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={isResending}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-zinc-700 hover:border-zinc-500 text-xs text-zinc-300 hover:text-white transition-colors"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isResending ? "animate-spin" : ""}`} />
+                  <span>{isResending ? "Đang gửi lại..." : "Gửi lại email xác thực"}</span>
+                </button>
+
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 font-bold text-xs uppercase tracking-wider shadow-md"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-gold-400/40 text-gold-300 hover:bg-gold-400/10 text-xs font-semibold uppercase tracking-wider transition-all"
                 >
-                  <span>Chuyển Đến Đăng Nhập</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Đến Trang Đăng Nhập</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>

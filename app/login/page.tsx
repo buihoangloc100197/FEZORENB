@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Lock, Mail, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Lock, Mail, Eye, EyeOff, CheckCircle2, Sparkles, RefreshCw } from "lucide-react";
 import ZorenbLogo from "@/components/ZorenbLogo";
 import { useAuth } from "@/context/AuthContext";
 
@@ -14,6 +14,9 @@ function LoginFormContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmedMessage, setConfirmedMessage] = useState<string | null>(null);
+  const [isUnconfirmed, setIsUnconfirmed] = useState(false);
+  const [directActivationLink, setDirectActivationLink] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,17 +27,50 @@ function LoginFormContent() {
     }
   }, [searchParams]);
 
+  const handleResendFromLogin = async () => {
+    if (!email) {
+      setErrorMessage("Vui lòng nhập địa chỉ email của Quý khách trước.");
+      return;
+    }
+    setIsResending(true);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.directLink) setDirectActivationLink(data.directLink);
+        setErrorMessage(null);
+        setConfirmedMessage(data.message || "Đã gửi yêu cầu kích hoạt.");
+      } else {
+        setErrorMessage(data.error || "Không thể gửi lại email xác thực.");
+      }
+    } catch {
+      setErrorMessage("Lỗi kết nối máy chủ khi gửi lại email.");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
+    setIsUnconfirmed(false);
+    setDirectActivationLink(null);
 
     const result = await login(email, password);
 
     if (result.success) {
       router.push("/");
     } else {
-      setErrorMessage(result.error || "Đăng nhập không thành công.");
+      const err = result.error || "Đăng nhập không thành công.";
+      setErrorMessage(err);
+      if (err.toLowerCase().includes("chưa được xác thực") || err.toLowerCase().includes("xác thực email")) {
+        setIsUnconfirmed(true);
+      }
       setIsSubmitting(false);
     }
   };
@@ -113,6 +149,34 @@ function LoginFormContent() {
           {errorMessage && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
               {errorMessage}
+            </div>
+          )}
+
+          {isUnconfirmed && (
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs space-y-3 text-amber-200 font-sans">
+              <p className="leading-relaxed">
+                Tài khoản của Quý khách đang ở trạng thái chưa xác thực email. Quý khách có thể yêu cầu gửi lại email hoặc bấm kích hoạt trực tiếp:
+              </p>
+              {directActivationLink ? (
+                <a
+                  href={directActivationLink}
+                  className="w-full py-3 px-4 rounded-full bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg hover:scale-[1.01] transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Kích Hoạt Tài Khoản Ngay</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendFromLogin}
+                  disabled={isResending}
+                  className="w-full py-2.5 px-4 rounded-full border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 transition-colors flex items-center justify-center gap-2 font-medium"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isResending ? "animate-spin" : ""}`} />
+                  <span>{isResending ? "Đang gửi yêu cầu..." : "Gửi Lại Thư Xác Thực / Lấy Link Kích Hoạt"}</span>
+                </button>
+              )}
             </div>
           )}
 

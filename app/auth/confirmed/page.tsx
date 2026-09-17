@@ -33,15 +33,15 @@ function ConfirmedContent() {
       <div className="flex items-center justify-between pb-6 border-b border-zinc-800/80 font-sans">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-300 hover:text-[#d4af37] transition-colors"
         >
           <Home className="w-4 h-4 text-[#d4af37]" />
-          <span>Về Trang Chủ</span>
+          <span>Trang Chủ</span>
         </Link>
 
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider px-3.5 py-1.5 rounded-full border border-gold-400/40 text-[#d4af37] hover:bg-gold-400/10 transition-all"
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider px-4 py-1.5 rounded-full border border-gold-400/40 text-[#d4af37] bg-[#d4af37]/5 hover:bg-[#d4af37]/15 transition-all"
         >
           <LogIn className="w-3.5 h-3.5" />
           <span>Đăng Nhập</span>
@@ -67,15 +67,15 @@ function ConfirmedContent() {
             className="text-2xl sm:text-3xl font-light uppercase tracking-wide text-zinc-100 mt-2"
             style={{ fontFamily: "var(--font-serif), Georgia, serif" }}
           >
-            Chúc Mừng Bạn Đã Xác Thực Địa Chỉ Email Thành Công!
+            Chúc Mừng Bạn Đã Xác Thực Email Thành Công!
           </h1>
         </div>
 
         <p className="text-xs sm:text-sm text-zinc-400 font-light leading-relaxed font-sans max-w-md mx-auto">
           Tài khoản thành viên chính chủ của Quý khách tại{" "}
-          <strong className="text-zinc-200 font-medium">FEZORENB</strong> đã được kích hoạt hoàn
-          tất. Quý khách hiện có thể đăng nhập ngay để tận hưởng toàn bộ quyền lợi VIP, quản lý tủ đồ
-          và mua sắm tuyệt tác.
+          <strong className="text-gold-400 font-semibold">ZORENB</strong> đã được kích hoạt hoàn
+          tất và lưu thành công vào cơ sở dữ liệu. Quý khách hiện có thể đăng nhập ngay để trải nghiệm
+          toàn bộ dịch vụ thượng lưu.
         </p>
 
         {userEmail && (
@@ -113,7 +113,7 @@ function ConfirmedContent() {
           className="w-full py-3 rounded-full border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors font-medium"
         >
           <Home className="w-4 h-4" />
-          <span>Khám Phá Trang Chủ FEZORENB</span>
+          <span>Khám Phá Trang Chủ ZORENB</span>
         </Link>
       </div>
 
@@ -121,7 +121,7 @@ function ConfirmedContent() {
       <div className="pt-4 border-t border-zinc-900 flex items-center justify-center gap-2">
         <ZorenbLogo size={18} />
         <span className="text-[11px] uppercase tracking-[0.25em] text-zinc-500 font-serif">
-          FEZORENB Haute Horlogerie
+          ZORENB Haute Horlogerie
         </span>
       </div>
     </div>

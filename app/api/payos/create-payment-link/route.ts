@@ -56,44 +56,97 @@ export async function POST(req: NextRequest) {
 
     // Exchange rate USD to VND (approx 25,400 VND/USD for PayOS payment processing)
     const EXCHANGE_RATE = 25400;
-    // Calculate total amount in VND, minimum 2000 VND
-    const totalAmountVND = Math.max(
-      2000,
-      Math.round((totalAmountUSD || 1000) * EXCHANGE_RATE)
+
+    // Build items with clean names and valid unit prices
+    const formattedItems = items.map((item: {
+      product?: { id?: string; name?: string; price?: number };
+      quantity?: number;
+    }) => {
+      const unitPriceUSD = item.product?.price || 1000;
+      const unitPriceVND = Math.max(2000, Math.round(unitPriceUSD * EXCHANGE_RATE));
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const cleanProdName = (item.product?.name || "Đồng hồ FEZORENB")
+        .replace(/[^\p{L}\p{N}\s\-]/gu, "")
+        .trim()
+        .slice(0, 45);
+
+      return {
+        name: cleanProdName || "Đồng hồ FEZORENB",
+        quantity: qty,
+        price: unitPriceVND,
+        productId: item.product?.id || "custom-product",
+      };
+    });
+
+    const calculatedTotalVND = formattedItems.reduce(
+      (acc: number, cur: any) => acc + cur.price * cur.quantity,
+      0
     );
 
-    // PayOS requires orderCode as integer (max safe integer)
+    // PayOS requires orderCode as integer (max safe integer, 6-9 digits)
     const orderCode = Number(
-      String(Date.now()).slice(-6) + Math.floor(Math.random() * 1000)
+      String(Date.now()).slice(-6) + Math.floor(100 + Math.random() * 900)
     );
-    const origin = req.nextUrl.origin;
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || (host ? `${proto}://${host}` : req.nextUrl.origin);
+
+    // Standardize PayOS description: Alphanumeric & spaces ONLY, max 25 chars, NO '#'
+    const description = `ZORENB ${orderCode}`.slice(0, 25);
+
+    // Ensure sum(item.price * item.quantity) === amount exactly
+    let finalAmount = calculatedTotalVND;
+    let payosItems = formattedItems.map((it: any) => ({
+      name: it.name,
+      quantity: it.quantity,
+      price: it.price,
+    }));
+
+    // If total exceeds 50,000,000 VND (PayOS sandbox test cap), scale down proportionally
+    if (finalAmount > 50000000) {
+      finalAmount = 50000000;
+      let runningSum = 0;
+      payosItems = formattedItems.map((it: any, idx: number) => {
+        if (idx === formattedItems.length - 1) {
+          const rem = Math.max(1000, finalAmount - runningSum);
+          const uPrice = Math.floor(rem / it.quantity);
+          runningSum += uPrice * it.quantity;
+          return { name: it.name, quantity: it.quantity, price: uPrice };
+        }
+        const ratio = (it.price * it.quantity) / calculatedTotalVND;
+        const itTotal = Math.floor((50000000 * ratio) / it.quantity) * it.quantity;
+        const uPrice = Math.max(1000, Math.floor(itTotal / it.quantity));
+        runningSum += uPrice * it.quantity;
+        return { name: it.name, quantity: it.quantity, price: uPrice };
+      });
+      const diff = finalAmount - runningSum;
+      if (payosItems.length > 0 && diff !== 0) {
+        payosItems[payosItems.length - 1].price += Math.floor(
+          diff / payosItems[payosItems.length - 1].quantity
+        );
+      }
+      finalAmount = payosItems.reduce(
+        (acc: number, it: any) => acc + it.price * it.quantity,
+        0
+      );
+    }
+
+    const returnUrl = `${origin}/checkout/success?orderCode=${orderCode}&amount=${calculatedTotalVND}&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(cleanName)}`;
+    const cancelUrl = `${origin}/checkout/cancel?orderCode=${orderCode}`;
 
     const paymentData = {
       orderCode,
-      amount: Math.min(totalAmountVND, 50000000), // Cap for standard PayOS sandbox test
-      description: `ZORENB #${orderCode}`.slice(0, 25),
-      items: items.map((item: {
-        product?: { name?: string; price?: number };
-        quantity?: number;
-      }) => ({
-        name: (item.product?.name || "Đồng hồ FEZORENB").slice(0, 50),
-        quantity: item.quantity || 1,
-        price: Math.min(
-          20000000,
-          Math.round(
-            ((item.product?.price || 1000) * EXCHANGE_RATE) /
-              (item.quantity || 1)
-          )
-        ),
-      })),
-      returnUrl: `${origin}/checkout/success?orderCode=${orderCode}&amount=${totalAmountVND}&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(cleanName)}`,
-      cancelUrl: `${origin}/checkout/cancel?orderCode=${orderCode}`,
+      amount: finalAmount,
+      description,
+      items: payosItems,
+      returnUrl,
+      cancelUrl,
     };
 
     if (isPayOSConfigured) {
       const paymentLink = await payOS.paymentRequests.create(paymentData);
 
-      // Persist order in Supabase if configured
+      // Persist order in Supabase with resilient column fallback
       if (isSupabaseConfigured) {
         try {
           const db = getServiceSupabase();
@@ -115,39 +168,63 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          const { data: insertedOrder } = await db
+          let insertedOrderId: string | null = null;
+
+          // Attempt insert with all extended columns
+          const { data: fullInsert, error: fullErr } = await db
             .from("orders")
             .insert({
               user_id: userId,
+              payos_order_id: String(orderCode),
               order_code: String(orderCode),
               customer_name: cleanName || "Quý Khách",
               customer_email: cleanEmail || "unknown@fezorenb.com",
               customer_phone: cleanPhone,
               status: "pending",
-              total_amount: totalAmountVND,
+              total_amount: calculatedTotalVND,
               currency: "VND",
               payos_payment_link_id: paymentLink.paymentLinkId,
               payos_checkout_url: paymentLink.checkoutUrl,
             })
-            .select()
+            .select("id")
             .single();
 
-          if (insertedOrder?.id) {
-            const orderItemsToInsert = items.map((item: {
-              product?: { id?: string; name?: string; price?: number };
-              quantity?: number;
-            }) => ({
-              order_id: insertedOrder.id,
-              product_id: item.product?.id || "custom-product",
-              product_name: item.product?.name || "Đồng hồ FEZORENB",
-              quantity: item.quantity || 1,
-              price: Math.round(
-                ((item.product?.price || 1000) * EXCHANGE_RATE) /
-                  (item.quantity || 1)
-              ),
-              image_url: null,
-            }));
-            await db.from("order_items").insert(orderItemsToInsert);
+          if (fullInsert?.id) {
+            insertedOrderId = fullInsert.id;
+          } else if (fullErr) {
+            // Fallback to core columns existing in schema (payos_order_id, user_id, status, total_amount, currency)
+            const { data: coreInsert } = await db
+              .from("orders")
+              .insert({
+                user_id: userId,
+                payos_order_id: String(orderCode),
+                status: "pending",
+                total_amount: calculatedTotalVND,
+                currency: "VND",
+              })
+              .select("id")
+              .single();
+
+            if (coreInsert?.id) {
+              insertedOrderId = coreInsert.id;
+            }
+          }
+
+          // Insert order items
+          if (insertedOrderId) {
+            for (const it of formattedItems) {
+              try {
+                await db.from("order_items").insert({
+                  order_id: insertedOrderId,
+                  product_id: it.productId,
+                  product_name: it.name,
+                  quantity: it.quantity,
+                  unit_price: it.price,
+                });
+              } catch {
+                // ignore
+              }
+            }
           }
         } catch (dbErr) {
           console.error("Failed to persist order to database:", dbErr);
@@ -159,17 +236,17 @@ export async function POST(req: NextRequest) {
         orderCode,
         checkoutUrl: paymentLink.checkoutUrl,
         paymentLinkId: paymentLink.paymentLinkId,
-        amountVND: totalAmountVND,
+        amountVND: calculatedTotalVND,
       });
     }
 
     // Mock PayOS checkout when credentials aren't set yet in .env.local
-    const mockCheckoutUrl = `${origin}/checkout/success?orderCode=${orderCode}&amount=${totalAmountVND}&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(cleanName)}&demo=true`;
+    const mockCheckoutUrl = `${origin}/checkout/success?orderCode=${orderCode}&amount=${calculatedTotalVND}&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(cleanName)}&demo=true`;
     return NextResponse.json({
       success: true,
       orderCode,
       checkoutUrl: mockCheckoutUrl,
-      amountVND: totalAmountVND,
+      amountVND: calculatedTotalVND,
       notice:
         "Đang sử dụng chế độ PayOS Test Simulator. Khi bạn cấu hình PAYOS_CLIENT_ID trong .env.local, hệ thống sẽ tự động gọi trực tiếp PayOS Production API.",
     });

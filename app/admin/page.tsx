@@ -1,116 +1,262 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   Shield, 
   DollarSign, 
   Users, 
   Package, 
   TrendingUp, 
-  UserPlus, 
   CheckCircle, 
   XCircle, 
   ArrowLeft,
   Search,
   Lock,
-  Edit2
+  Bell,
+  BellRing,
+  Volume2,
+  VolumeX,
+  Clock,
+  ExternalLink,
+  RefreshCw,
+  Sparkles,
+  Phone,
+  Mail,
+  UserCheck
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
 import { ALL_WATCHES } from "@/data/watches";
 
+interface AdminOrder {
+  id: string;
+  order_code: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  total_amount: number;
+  currency: string;
+  status: "pending" | "paid" | "cancelled" | "shipping" | "completed";
+  created_at: string;
+  items: Array<{
+    id: string;
+    product_id: string;
+    product_name: string;
+    quantity: number;
+    price: number;
+  }>;
+}
+
+interface AdminUser {
+  id: string;
+  full_name: string;
+  phone?: string;
+  avatar_url?: string;
+  role: "admin" | "staff" | "user";
+  created_at: string;
+}
+
+interface Analytics {
+  totalOrders: number;
+  totalRevenueVND: number;
+  totalRevenueUSD: number;
+  paidOrdersCount: number;
+  pendingOrdersCount: number;
+  cancelledOrdersCount: number;
+  averageOrderValueVND: number;
+}
+
 export default function AdminDashboardPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isStaff, isLoading } = useAuth();
 
-  // Active tab: "revenue" | "staff" | "products" | "orders"
-  const [activeTab, setActiveTab] = useState<"revenue" | "staff" | "products">("revenue");
+  // Active tab: "counter" | "revenue" | "staff" | "products"
+  const [activeTab, setActiveTab] = useState<"counter" | "revenue" | "staff" | "products">("counter");
 
-  // Staff & Users Management state
-  const [staffList, setStaffList] = useState([
-    {
-      id: "usr_001",
-      name: "Nguyễn Văn Admin",
-      email: "admin@zorenb.com",
-      role: "admin",
-      department: "Ban Điều Hành Thượng Lưu",
-      status: "Đang Hoạt Động",
-      dateJoined: "01/01/2026",
-    },
-    {
-      id: "usr_002",
-      name: "Trần Thị Quản Gia",
-      email: "concierge.lead@zorenb.com",
-      role: "staff",
-      department: "Quản Gia Boutique Geneva",
-      status: "Đang Hoạt Động",
-      dateJoined: "15/01/2026",
-    },
-    {
-      id: "usr_003",
-      name: "Lê Chuyên Viên Thẩm Định",
-      email: "appraisal.cosc@zorenb.com",
-      role: "staff",
-      department: "Kiểm Định Kỹ Thuật COSC",
-      status: "Đang Hoạt Động",
-      dateJoined: "10/02/2026",
-    },
-    {
-      id: "usr_004",
-      name: "Bùi Khách VIP 1",
-      email: "vip.collector@zorenb.com",
-      role: "user",
-      department: "Khách Hàng Hội Viên",
-      status: "Đang Hoạt Động",
-      dateJoined: "02/03/2026",
-    },
-  ]);
-
-  const [newStaff, setNewStaff] = useState({
-    name: "",
-    email: "",
-    role: "staff",
-    department: "",
+  // Orders and analytics state
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics>({
+    totalOrders: 0,
+    totalRevenueVND: 0,
+    totalRevenueUSD: 0,
+    paidOrdersCount: 0,
+    pendingOrdersCount: 0,
+    cancelledOrdersCount: 0,
+    averageOrderValueVND: 0,
   });
-  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [isOrdersLoading, setIsOrdersLoading] = useState(true);
 
-  // Revenue metrics
-  const totalRevenueUSD = 4680000;
-  const totalOrders = 128;
-  const avgOrderValue = Math.round(totalRevenueUSD / totalOrders);
+  // Users state
+  const [userList, setUserList] = useState<AdminUser[]>([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
 
-  const handleAddStaff = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStaff.name || !newStaff.email) return;
+  // Sound and notification states for Counter Staff
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [newOrderAlert, setNewOrderAlert] = useState<AdminOrder | null>(null);
+  const prevOrderCountRef = useRef<number | null>(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string>("");
 
-    setStaffList((prev) => [
-      ...prev,
-      {
-        id: "usr_" + Math.random().toString(36).substring(2, 7),
-        name: newStaff.name,
-        email: newStaff.email,
-        role: newStaff.role,
-        department: newStaff.department || "Nhân Sự Phục Vụ",
-        status: "Đang Hoạt Động",
-        dateJoined: new Date().toLocaleDateString("vi-VN"),
-      },
-    ]);
+  // Search and filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-    setNewStaff({ name: "", email: "", role: "staff", department: "" });
-    setShowAddStaffModal(false);
+  // 1. Web Audio API Luxury Ding-Dong Chime for Counter Staff
+  const playLuxuryChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Note 1: High crisp chime (E6 ~ 1318Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(1318.5, now);
+      osc1.frequency.exponentialRampToValueAtTime(1046.5, now + 0.3); // Ramp to C6
+      gain1.gain.setValueAtTime(0.35, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.8);
+
+      // Note 2: Warm fundamental chime (G5 ~ 783Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(783.99, now + 0.15);
+      gain2.gain.setValueAtTime(0.25, now + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.15);
+      osc2.stop(now + 1.2);
+    } catch (err) {
+      console.warn("Could not play luxury chime:", err);
+    }
   };
 
-  const handleRoleChange = (id: string, newRole: string) => {
-    setStaffList((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, role: newRole } : s))
-    );
+  // 2. Fetch Orders & Analytics from API
+  const fetchOrdersData = async (isBackgroundPoll = false) => {
+    try {
+      if (!isBackgroundPoll) setIsOrdersLoading(true);
+      const res = await fetch("/api/admin/orders");
+      if (res.ok) {
+        const data = await res.json();
+        const incomingOrders: AdminOrder[] = data.orders || [];
+
+        // Check if there is a NEW order
+        if (
+          prevOrderCountRef.current !== null &&
+          incomingOrders.length > prevOrderCountRef.current
+        ) {
+          const newest = incomingOrders[0];
+          setNewOrderAlert(newest);
+          if (isSoundEnabled) {
+            playLuxuryChime();
+          }
+        }
+
+        prevOrderCountRef.current = incomingOrders.length;
+        setOrders(incomingOrders);
+        if (data.analytics) setAnalytics(data.analytics);
+        setLastRefreshedAt(new Date().toLocaleTimeString("vi-VN"));
+      }
+    } catch (err) {
+      console.error("Failed to load admin orders:", err);
+    } finally {
+      if (!isBackgroundPoll) setIsOrdersLoading(false);
+    }
+  };
+
+  // 3. Fetch Users from API
+  const fetchUsersData = async () => {
+    try {
+      setIsUsersLoading(true);
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUserList(data.users || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+    } finally {
+      setIsUsersLoading(false);
+    }
+  };
+
+  // Initial load and polling (every 6 seconds for counter staff alerts)
+  useEffect(() => {
+    if (isAdmin || isStaff) {
+      fetchOrdersData();
+      const interval = setInterval(() => {
+        fetchOrdersData(true);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin, isStaff, isSoundEnabled]);
+
+  useEffect(() => {
+    if (activeTab === "staff" && isAdmin) {
+      fetchUsersData();
+    }
+  }, [activeTab, isAdmin]);
+
+  // Handle Order Status Change
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, status: newStatus }),
+      });
+      if (res.ok) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus as any } : o))
+        );
+        fetchOrdersData(true);
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
+
+  // Handle Role Change
+  const handleUpdateUserRole = async (userId: string, newRole: "admin" | "staff" | "user") => {
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      if (res.ok) {
+        setUserList((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update user role:", err);
+    }
   };
 
   // Access Control Guard
-  if (!isAdmin) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#070708] text-zinc-100 flex items-center justify-center font-sans">
+        <div className="flex items-center gap-3 text-gold-300">
+          <RefreshCw className="w-5 h-5 animate-spin" />
+          <span className="text-xs uppercase tracking-widest">Đang kiểm tra bảo mật phân quyền...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin && !isStaff) {
     return (
       <div className="min-h-screen bg-[#070708] text-zinc-100 flex items-center justify-center p-6 font-sans">
-        <div className="text-center space-y-4 max-w-md p-8 rounded-2xl bg-[#101015] border border-rose-500/30">
+        <div className="text-center space-y-4 max-w-md p-8 rounded-2xl bg-[#101015] border border-rose-500/30 shadow-2xl">
           <div className="w-14 h-14 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto">
             <Lock className="w-6 h-6" />
           </div>
@@ -121,14 +267,14 @@ export default function AdminDashboardPage() {
             Từ Chối Truy Cập
           </h1>
           <p className="text-xs text-zinc-400 font-light leading-relaxed">
-            Khu vực này được bảo mật nghiêm ngặt và chỉ dành riêng cho tài khoản có vai trò <strong>Admin (Quản Trị Viên)</strong>.
+            Khu vực này được bảo vệ nghiêm ngặt, chỉ dành riêng cho tài khoản có vai trò <strong>Quản Trị Viên (Admin)</strong> hoặc <strong>Nhân Viên Trực Quầy (Staff)</strong>.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/login"
               className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 font-bold text-xs uppercase tracking-wider"
             >
-              Đăng Nhập Tài Khoản Admin
+              Đăng Nhập Tài Khoản Quản Trị
             </Link>
             <Link
               href="/"
@@ -142,11 +288,68 @@ export default function AdminDashboardPage() {
     );
   }
 
+  // Filtered orders list
+  const filteredOrders = orders.filter((ord) => {
+    const matchesStatus = statusFilter === "all" || ord.status === statusFilter;
+    const matchesSearch =
+      ord.order_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ord.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ord.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ord.items.some((it) => it.product_name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <div className="min-h-screen bg-[#070708] text-zinc-100 pt-28 pb-20 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Admin Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-[#101015] border border-zinc-800">
+      <div className="max-w-7xl mx-auto space-y-6">
+
+        {/* 🔔 FLOATING INSTANT NOTIFICATION BANNER FOR COUNTER STAFF */}
+        {newOrderAlert && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-[#d4af37]/20 to-emerald-500/20 border-2 border-[#d4af37] shadow-[0_0_40px_rgba(212,175,55,0.3)] animate-pulse flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-full bg-[#d4af37] text-zinc-950 flex items-center justify-center font-bold shadow-lg">
+                <BellRing className="w-6 h-6 animate-bounce" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-[#d4af37] text-zinc-950">
+                    ĐƠN HÀNG MỚI VỪA ĐẶT
+                  </span>
+                  <span className="text-xs font-mono text-zinc-400">
+                    #{newOrderAlert.order_code}
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-zinc-100 mt-1">
+                  Khách hàng: <span className="text-[#d4af37]">{newOrderAlert.customer_name}</span> • Trị giá:{" "}
+                  <span className="text-emerald-400 font-mono font-bold">
+                    {formatPrice(newOrderAlert.total_amount)} ₫
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  setActiveTab("counter");
+                  setNewOrderAlert(null);
+                }}
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-[#d4af37] hover:bg-gold-300 text-zinc-950 font-bold text-xs uppercase tracking-wider transition-all"
+              >
+                Tiếp Nhận Đơn Ngay
+              </button>
+              <button
+                onClick={() => setNewOrderAlert(null)}
+                className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white text-xs"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TOP ADMIN & COUNTER STAFF HEADER */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-6 rounded-2xl bg-[#101015] border border-zinc-800">
           <div>
             <div className="flex items-center gap-2.5">
               <Link href="/" className="text-zinc-500 hover:text-white transition-colors">
@@ -157,226 +360,385 @@ export default function AdminDashboardPage() {
                   className="text-xl sm:text-2xl font-bold uppercase tracking-wider text-zinc-100"
                   style={{ fontFamily: "var(--font-serif), Georgia, serif" }}
                 >
-                  Trung Tâm Quản Trị ZORENB
+                  Trung Tâm Quản Trị &amp; Quầy Trực FEZORENB
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                  Toàn Quyền Admin
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-widest border ${
+                  isAdmin 
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                    : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                }`}>
+                  {isAdmin ? "Toàn Quyền Admin" : "Nhân Viên Trực Quầy"}
                 </span>
               </div>
             </div>
             <p className="text-xs text-zinc-400 font-light mt-1">
-              Quản lý doanh thu toàn cầu, phân cấp nhân viên và điều phối danh mục tuyệt tác.
+              Hệ thống điều phối đơn hàng trực tiếp, thông báo âm thanh quầy trực và thống kê doanh thu thời gian thực.
             </p>
           </div>
 
-          {/* Tab navigation */}
-          <div className="flex items-center gap-2 bg-[#16161e] p-1.5 rounded-xl border border-zinc-800">
+          {/* Sound & Audio Control buttons for Staff on duty */}
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <button
-              onClick={() => setActiveTab("revenue")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === "revenue"
-                  ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-md"
-                  : "text-zinc-400 hover:text-zinc-100"
+              onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+              className={`px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 border transition-all ${
+                isSoundEnabled
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                  : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
               }`}
+              title="Bật/Tắt chuông báo đơn mới"
             >
-              Doanh Thu
+              {isSoundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              <span>{isSoundEnabled ? "Chuông Quầy: BẬT" : "Chuông Quầy: TẮT"}</span>
             </button>
+
             <button
-              onClick={() => setActiveTab("staff")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === "staff"
-                  ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-md"
-                  : "text-zinc-400 hover:text-zinc-100"
-              }`}
+              onClick={playLuxuryChime}
+              className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 hover:text-[#d4af37] flex items-center gap-1.5 transition-colors"
+              title="Bấm thử âm thanh chuông báo"
             >
-              Nhân Viên &amp; Phân Quyền
+              <Bell className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Thử Chuông</span>
             </button>
+
             <button
-              onClick={() => setActiveTab("products")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
-                activeTab === "products"
-                  ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-md"
-                  : "text-zinc-400 hover:text-zinc-100"
-              }`}
+              onClick={() => fetchOrdersData()}
+              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              title={`Làm mới (cập nhật lúc ${lastRefreshedAt || "vừa xong"})`}
             >
-              Sản Phẩm ({ALL_WATCHES.length})
+              <RefreshCw className={`w-4 h-4 ${isOrdersLoading ? "animate-spin text-[#d4af37]" : ""}`} />
             </button>
           </div>
         </div>
 
-        {/* ── TAB 1: REVENUE OVERVIEW ── */}
+        {/* TAB NAVIGATION */}
+        <div className="flex items-center gap-2 bg-[#121217] p-1.5 rounded-2xl border border-zinc-800 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("counter")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all ${
+              activeTab === "counter"
+                ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-lg shadow-gold-400/20"
+                : "text-zinc-400 hover:text-zinc-100"
+            }`}
+          >
+            <BellRing className="w-4 h-4" />
+            <span>Quầy Trực &amp; Báo Đơn ({orders.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("revenue")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all ${
+              activeTab === "revenue"
+                ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-lg shadow-gold-400/20"
+                : "text-zinc-400 hover:text-zinc-100"
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Thống Kê Doanh Thu</span>
+          </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab("staff")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all ${
+                activeTab === "staff"
+                  ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-lg shadow-gold-400/20"
+                  : "text-zinc-400 hover:text-zinc-100"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Phân Quyền Nhân Sự</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setActiveTab("products")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all ${
+              activeTab === "products"
+                ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-lg shadow-gold-400/20"
+                : "text-zinc-400 hover:text-zinc-100"
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>Sản Phẩm &amp; Ảnh Storage ({ALL_WATCHES.length})</span>
+          </button>
+        </div>
+
+        {/* ── TAB 1: QUẦY TRỰC & THÔNG BÁO ĐƠN HÀNG (COUNTER STAFF ORDERS) ── */}
+        {activeTab === "counter" && (
+          <div className="space-y-6">
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#101015] border border-zinc-800">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Tìm mã đơn, tên khách, sản phẩm..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {["all", "pending", "paid", "shipping", "completed", "cancelled"].map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setStatusFilter(st)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                      statusFilter === st
+                        ? "bg-zinc-800 text-[#d4af37] border border-[#d4af37]/40"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {st === "all" ? "Tất Cả" : st === "pending" ? "Chờ Xử Lý" : st === "paid" ? "Đã Thu Tiền" : st === "shipping" ? "Đang Giao" : st === "completed" ? "Hoàn Thành" : "Đã Hủy"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Orders Feed */}
+            <div className="grid grid-cols-1 gap-4">
+              {filteredOrders.length === 0 ? (
+                <div className="text-center py-16 p-8 rounded-2xl bg-[#101015] border border-zinc-800 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center mx-auto text-zinc-500">
+                    <Package className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-medium text-zinc-300">Không có đơn đặt hàng nào trong danh mục này</p>
+                  <p className="text-xs text-zinc-500 font-light">
+                    Hệ thống quầy trực đang tự động lắng nghe 24/7. Khi có khách đặt hàng, âm thanh chuông sẽ tự động phát.
+                  </p>
+                </div>
+              ) : (
+                filteredOrders.map((ord) => {
+                  const isPaid = ord.status === "paid";
+                  const isPending = ord.status === "pending";
+                  const isCancelled = ord.status === "cancelled";
+
+                  return (
+                    <div
+                      key={ord.id}
+                      className={`p-6 rounded-2xl border transition-all ${
+                        isPending
+                          ? "bg-gradient-to-r from-[#17130b] to-[#101015] border-amber-500/40 shadow-lg"
+                          : isPaid
+                          ? "bg-[#101015] border-emerald-500/30"
+                          : "bg-[#0d0d10] border-zinc-800/80 opacity-75"
+                      }`}
+                    >
+                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                            isPending ? "bg-amber-500/20 text-amber-400" : isPaid ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-800 text-zinc-400"
+                          }`}>
+                            <Clock className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base font-bold font-mono text-zinc-100">
+                                #{ord.order_code}
+                              </span>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                isPaid
+                                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                  : isPending
+                                  ? "bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse"
+                                  : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                              }`}>
+                                {isPaid ? "Đã Thanh Toán PayOS" : isPending ? "Đang Chờ Quầy Xử Lý" : ord.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-3 font-light">
+                              <span>Đặt lúc: {new Date(ord.created_at).toLocaleString("vi-VN")}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Customer Details */}
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-300">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-zinc-500">Khách Hàng:</span>
+                            <strong className="text-white font-medium">{ord.customer_name}</strong>
+                          </div>
+                          {ord.customer_phone && (
+                            <div className="flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-[#d4af37]" />
+                              <span className="font-mono text-zinc-300">{ord.customer_phone}</span>
+                            </div>
+                          )}
+                          {ord.customer_email && (
+                            <div className="flex items-center gap-1.5">
+                              <Mail className="w-3.5 h-3.5 text-zinc-500" />
+                              <span className="text-zinc-400">{ord.customer_email}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Items and Actions */}
+                      <div className="pt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        {/* Items list */}
+                        <div className="space-y-1.5 flex-1">
+                          {ord.items && ord.items.length > 0 ? (
+                            ord.items.map((it, idx) => (
+                              <div key={idx} className="flex items-center gap-2 text-xs text-zinc-200">
+                                <span className="text-gold-300 font-mono font-bold">{it.quantity}x</span>
+                                <span className="font-medium text-zinc-100">{it.product_name}</span>
+                                <span className="text-zinc-500">•</span>
+                                <span className="text-zinc-400 font-mono">{formatPrice(it.price)} ₫</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-xs text-zinc-400">Kiệt tác đồng hồ Haute Horlogerie</div>
+                          )}
+                        </div>
+
+                        {/* Total Amount & Actions */}
+                        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                          <div className="text-right">
+                            <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Tổng Đơn Hàng</p>
+                            <p className="text-lg font-mono font-bold text-emerald-400">
+                              {formatPrice(ord.total_amount)} ₫
+                            </p>
+                          </div>
+
+                          {/* Quick action buttons for counter staff */}
+                          <div className="flex items-center gap-2">
+                            {isPending && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(ord.id, "paid")}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold uppercase tracking-wider transition-all"
+                              >
+                                Xác Nhận Thu Tiền
+                              </button>
+                            )}
+
+                            {isPaid && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(ord.id, "completed")}
+                                className="px-3 py-1.5 rounded-lg bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/40 text-xs font-semibold uppercase tracking-wider transition-all"
+                              >
+                                Hoàn Tất Đơn
+                              </button>
+                            )}
+
+                            {ord.status !== "cancelled" && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(ord.id, "cancelled")}
+                                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-zinc-800 text-xs transition-colors"
+                                title="Hủy đơn hàng"
+                              >
+                                Hủy Đơn
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 2: THỐNG KÊ DOANH THU & BÁN HÀNG (SALES ANALYTICS) ── */}
         {activeTab === "revenue" && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-2">
                 <div className="flex items-center justify-between text-zinc-400 text-xs uppercase font-semibold tracking-wider">
-                  <span>Tổng Doanh Thu</span>
+                  <span>Tổng Doanh Thu Đã Thu</span>
                   <DollarSign className="w-4 h-4 text-[#d4af37]" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-mono font-bold text-[#d4af37]">
-                  ${formatPrice(totalRevenueUSD)}
+                <div className="text-2xl sm:text-3xl font-mono font-bold text-emerald-400">
+                  {formatPrice(analytics.totalRevenueVND)} ₫
                 </div>
-                <div className="text-[11px] text-zinc-400 font-mono">
-                  ≈ {formatPrice(totalRevenueUSD * 25400)} VNĐ qua cổng PayOS
+                <div className="text-xs text-zinc-400 font-mono">
+                  ≈ ${formatPrice(analytics.totalRevenueUSD)} USD (tỷ giá 25,400)
                 </div>
                 <p className="text-[11px] text-emerald-400 flex items-center gap-1 pt-1 font-mono">
-                  <TrendingUp className="w-3.5 h-3.5" /> +28.4% so với quý trước
+                  <TrendingUp className="w-3.5 h-3.5" /> Dữ liệu trực tiếp từ PayOS &amp; DB
                 </p>
               </div>
 
               <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-2">
                 <div className="flex items-center justify-between text-zinc-400 text-xs uppercase font-semibold tracking-wider">
-                  <span>Đơn Hàng Thành Công</span>
-                  <Package className="w-4 h-4 text-emerald-400" />
+                  <span>Đơn Thành Công (Paid)</span>
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-mono font-bold text-zinc-100">
-                  {totalOrders} Kiệt Tác
+                  {analytics.paidOrdersCount} Đơn
                 </div>
                 <p className="text-[11px] text-zinc-400 pt-1">
-                  100% Giao xe bọc thép VIP an toàn toàn cầu
+                  Đã hoàn tất thanh toán hoặc duyệt quầy
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between text-zinc-400 text-xs uppercase font-semibold tracking-wider">
+                  <span>Đơn Chờ Xử Lý (Pending)</span>
+                  <Clock className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-mono font-bold text-amber-400">
+                  {analytics.pendingOrdersCount} Đơn
+                </div>
+                <p className="text-[11px] text-zinc-400 pt-1">
+                  Nhân viên trực quầy cần kiểm tra
                 </p>
               </div>
 
               <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-2">
                 <div className="flex items-center justify-between text-zinc-400 text-xs uppercase font-semibold tracking-wider">
                   <span>Giá Trị Trung Bình / Đơn</span>
-                  <Shield className="w-4 h-4 text-amber-400" />
+                  <Shield className="w-4 h-4 text-gold-300" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-mono font-bold text-zinc-100">
-                  ${formatPrice(avgOrderValue)}
+                  {formatPrice(analytics.averageOrderValueVND)} ₫
                 </div>
                 <p className="text-[11px] text-zinc-400 pt-1">
-                  Phân khúc Ultra-Luxury Haute Horlogerie
+                  Phân khúc kiệt tác Haute Horlogerie
                 </p>
               </div>
             </div>
 
-            {/* Recent Orders Table */}
+            {/* Sales Table Breakdown */}
             <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-4">
               <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-100">
-                Giao Dịch PayOS &amp; Đơn Đặt Hàng Gần Đây
+                Lịch Sử Doanh Số Gần Đây
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-zinc-300">
-                  <thead className="text-zinc-500 uppercase tracking-wider border-b border-zinc-800 text-[10px]">
+                  <thead className="bg-[#16161e] text-zinc-400 uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="py-3 px-4">Mã Đơn</th>
                       <th className="py-3 px-4">Khách Hàng</th>
-                      <th className="py-3 px-4">Mẫu Đồng Hồ</th>
-                      <th className="py-3 px-4">Trị Giá</th>
-                      <th className="py-3 px-4">Cổng</th>
+                      <th className="py-3 px-4">Kiệt Tác Đặt Mua</th>
+                      <th className="py-3 px-4">Số Tiền</th>
                       <th className="py-3 px-4">Trạng Thái</th>
+                      <th className="py-3 px-4">Thời Gian</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-850 font-mono">
-                    <tr className="hover:bg-zinc-900/40">
-                      <td className="py-3 px-4 font-bold text-[#d4af37]">#ORD-99104</td>
-                      <td className="py-3 px-4 font-sans text-zinc-200">Bùi Hoàng Lộc</td>
-                      <td className="py-3 px-4 font-sans">Rolex Daytona 126500LN</td>
-                      <td className="py-3 px-4 font-bold">$34,500</td>
-                      <td className="py-3 px-4 text-emerald-400">PayOS QR</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                          Đã thanh toán
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-zinc-900/40">
-                      <td className="py-3 px-4 font-bold text-[#d4af37]">#ORD-99082</td>
-                      <td className="py-3 px-4 font-sans text-zinc-200">Phạm Minh Đức</td>
-                      <td className="py-3 px-4 font-sans">Patek Philippe Nautilus 5711</td>
-                      <td className="py-3 px-4 font-bold">$142,000</td>
-                      <td className="py-3 px-4 text-emerald-400">PayOS Banking</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                          Đã thanh toán
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-zinc-900/40">
-                      <td className="py-3 px-4 font-bold text-[#d4af37]">#ORD-99071</td>
-                      <td className="py-3 px-4 font-sans text-zinc-200">Trần Đình Tuấn</td>
-                      <td className="py-3 px-4 font-sans">Audemars Piguet Royal Oak</td>
-                      <td className="py-3 px-4 font-bold">$68,000</td>
-                      <td className="py-3 px-4 text-amber-400">PayOS Chờ Duyệt</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                          Đang xử lý
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB 2: STAFF & ROLES (Admin Request: "quản lý các cấp nhân viên") ── */}
-        {activeTab === "staff" && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-base font-bold uppercase tracking-wider text-zinc-100">
-                  Quản Lý Các Cấp Nhân Viên &amp; Phân Quyền Hệ Thống
-                </h2>
-                <p className="text-xs text-zinc-400 font-light mt-0.5">
-                  Phân cấp vai trò: <strong>Admin</strong> (toàn quyền quản trị), <strong>Staff</strong> (nhân viên phục vụ/thẩm định), <strong>User</strong> (khách hàng).
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowAddStaffModal(true)}
-                className="px-4 py-2.5 rounded-full bg-gradient-to-r from-[#d4af37] to-amber-500 text-zinc-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Thêm Nhân Sự Mới</span>
-              </button>
-            </div>
-
-            {/* Staff List Table */}
-            <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-4">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-zinc-300">
-                  <thead className="text-zinc-500 uppercase tracking-wider border-b border-zinc-800 text-[10px]">
-                    <tr>
-                      <th className="py-3 px-4">Nhân Sự</th>
-                      <th className="py-3 px-4">Email</th>
-                      <th className="py-3 px-4">Bộ Phận</th>
-                      <th className="py-3 px-4">Cấp Bậc / Role</th>
-                      <th className="py-3 px-4">Trạng Thái</th>
-                      <th className="py-3 px-4">Hành Động</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-850">
-                    {staffList.map((person) => (
-                      <tr key={person.id} className="hover:bg-zinc-900/40">
-                        <td className="py-3 px-4 font-semibold text-zinc-100 flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gold-400/20 text-[#d4af37] border border-[#d4af37]/40 flex items-center justify-center font-bold text-xs">
-                            {person.name.charAt(0)}
-                          </div>
-                          <span>{person.name}</span>
+                  <tbody className="divide-y divide-zinc-800/80">
+                    {orders.slice(0, 10).map((ord) => (
+                      <tr key={ord.id} className="hover:bg-zinc-900/40">
+                        <td className="py-3 px-4 font-mono font-bold text-white">#{ord.order_code}</td>
+                        <td className="py-3 px-4">{ord.customer_name}</td>
+                        <td className="py-3 px-4 text-zinc-300 max-w-xs truncate">
+                          {ord.items.map((i) => i.product_name).join(", ") || "Đồng hồ cao cấp"}
                         </td>
-                        <td className="py-3 px-4 font-mono text-zinc-400">{person.email}</td>
-                        <td className="py-3 px-4 text-zinc-300">{person.department}</td>
-                        <td className="py-3 px-4">
-                          <select
-                            value={person.role}
-                            onChange={(e) => handleRoleChange(person.id, e.target.value)}
-                            className="bg-zinc-900 border border-zinc-700 text-xs rounded-lg px-2 py-1 text-zinc-100 focus:border-[#d4af37] outline-none"
-                          >
-                            <option value="admin">Admin (Toàn Quyền)</option>
-                            <option value="staff">Staff (Nhân Viên)</option>
-                            <option value="user">User (Khách Hàng)</option>
-                          </select>
+                        <td className="py-3 px-4 font-mono font-bold text-emerald-400">
+                          {formatPrice(ord.total_amount)} ₫
                         </td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                            {person.status}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${
+                            ord.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : ord.status === "pending" ? "bg-amber-500/10 text-amber-400" : "text-zinc-500"
+                          }`}>
+                            {ord.status}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-zinc-500 font-mono text-[11px]">
-                          {person.dateJoined}
+                        <td className="py-3 px-4 text-zinc-500 font-mono">
+                          {new Date(ord.created_at).toLocaleDateString("vi-VN")}
                         </td>
                       </tr>
                     ))}
@@ -384,122 +746,154 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Modal Add Staff */}
-            {showAddStaffModal && (
-              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="w-full max-w-md p-6 rounded-2xl bg-[#121217] border border-zinc-800 space-y-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-100">
-                    Bổ Nhiệm Cán Bộ Nhân Sự Mới
-                  </h3>
-                  <form onSubmit={handleAddStaff} className="space-y-3">
-                    <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1">Họ và Tên</label>
-                      <input
-                        type="text"
-                        value={newStaff.name}
-                        onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                        required
-                        placeholder="Nguyễn Văn B"
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1">Email Công Vụ</label>
-                      <input
-                        type="email"
-                        value={newStaff.email}
-                        onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                        required
-                        placeholder="staff.member@zorenb.com"
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1">Bộ Phận</label>
-                      <input
-                        type="text"
-                        value={newStaff.department}
-                        onChange={(e) => setNewStaff({ ...newStaff, department: e.target.value })}
-                        placeholder="Phòng Thẩm Định / Quản Gia"
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1">Phân Cấp Quyền Hạn</label>
-                      <select
-                        value={newStaff.role}
-                        onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100"
-                      >
-                        <option value="staff">Staff - Nhân Viên Thẩm Định / Phục Vụ</option>
-                        <option value="admin">Admin - Quản Trị Viên Toàn Quyền</option>
-                      </select>
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <button
-                        type="submit"
-                        className="flex-1 py-2.5 rounded-full bg-[#d4af37] text-zinc-950 font-bold text-xs uppercase"
-                      >
-                        Lưu Nhân Sự
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddStaffModal(false)}
-                        className="px-4 py-2.5 rounded-full bg-zinc-800 text-zinc-300 text-xs uppercase"
-                      >
-                        Hủy
-                      </button>
-                    </div>
-                  </form>
+        {/* ── TAB 3: PHÂN QUYỀN NHÂN SỰ & QUẢN TRỊ VIÊN ── */}
+        {activeTab === "staff" && isAdmin && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-100 flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-[#d4af37]" />
+                    <span>Danh Sách Nhân Sự &amp; Khách Hàng Trong Cơ Sở Dữ Liệu</span>
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-light mt-0.5">
+                    Quản trị viên có thể thăng cấp hoặc phân quyền vai trò: Admin, Nhân Viên Trực Quầy (Staff), hoặc Khách Hàng (User).
+                  </p>
+                </div>
+                <button
+                  onClick={fetchUsersData}
+                  className="px-3.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 hover:text-white flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isUsersLoading ? "animate-spin text-[#d4af37]" : ""}`} />
+                  <span>Cập nhật</span>
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-zinc-300">
+                  <thead className="bg-[#16161e] text-zinc-400 uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="py-3 px-4">Tài Khoản</th>
+                      <th className="py-3 px-4">Số Điện Thoại</th>
+                      <th className="py-3 px-4">Vai Trò Hiện Tại</th>
+                      <th className="py-3 px-4">Phân Cấp Quyền Hạn</th>
+                      <th className="py-3 px-4">Ngày Tạo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/80">
+                    {userList.map((u) => (
+                      <tr key={u.id} className="hover:bg-zinc-900/40">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            {u.avatar_url && (
+                              <Image
+                                src={u.avatar_url}
+                                alt={u.full_name}
+                                width={28}
+                                height={28}
+                                className="rounded-full bg-zinc-800 border border-zinc-700"
+                              />
+                            )}
+                            <div>
+                              <p className="font-semibold text-white">{u.full_name || "Thành viên mới"}</p>
+                              <p className="text-[10px] font-mono text-zinc-500">{u.id.slice(0, 13)}...</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-mono">{u.phone || "—"}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${
+                            u.role === "admin"
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                              : u.role === "staff"
+                              ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                          }`}>
+                            {u.role === "admin" ? "Quản Trị Viên" : u.role === "staff" ? "Nhân Viên Trực Quầy" : "Khách Hàng"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleUpdateUserRole(u.id, e.target.value as any)}
+                            className="px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-zinc-200 focus:outline-none focus:border-[#d4af37]"
+                          >
+                            <option value="admin">Admin (Toàn Quyền)</option>
+                            <option value="staff">Staff (Trực Quầy &amp; Báo Đơn)</option>
+                            <option value="user">User (Khách Hàng Thường)</option>
+                          </select>
+                        </td>
+                        <td className="py-3 px-4 text-zinc-500 font-mono">
+                          {new Date(u.created_at).toLocaleDateString("vi-VN")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 4: SẢN PHẨM & LIÊN KẾT ẢNH SUPABASE STORAGE ── */}
+        {activeTab === "products" && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-100 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#d4af37]" />
+                    <span>Bộ Sưu Tập Đồng Hồ &amp; Liên Kết Ảnh Supabase Storage</span>
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-light mt-0.5">
+                    100% hình ảnh đã được liên kết chính xác với bucket <code className="text-[#d4af37]">anhsanphamzorenb</code> và đồng bộ thông số chi tiết.
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* ── TAB 3: PRODUCTS CATALOG ── */}
-        {activeTab === "products" && (
-          <div className="p-6 rounded-2xl bg-[#101015] border border-zinc-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold uppercase tracking-wider text-zinc-100">
-                  Danh Mục Sản Phẩm 10 Thương Hiệu
-                </h2>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Dữ liệu được tổ chức theo từng hãng đồng hồ độc lập.
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ALL_WATCHES.map((w) => (
+                  <div
+                    key={w.id}
+                    className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3.5 hover:border-[#d4af37]/50 transition-all"
+                  >
+                    <div className="relative w-16 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-zinc-700/50">
+                      <Image
+                        src={w.images[0]}
+                        alt={w.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-[#d4af37] block truncate">
+                        {w.brand} • Ref. {w.reference}
+                      </span>
+                      <h3 className="text-xs font-semibold text-zinc-100 truncate mt-0.5">
+                        {w.name}
+                      </h3>
+                      <p className="text-xs font-mono font-bold text-emerald-400 mt-1">
+                        ${w.price.toLocaleString()} ≈ {((w.price * 25400) / 1000000).toFixed(0)} Tr ₫
+                      </p>
+                      <Link
+                        href={`/products/${w.id}`}
+                        target="_blank"
+                        className="text-[10px] text-zinc-400 hover:text-white inline-flex items-center gap-1 mt-1"
+                      >
+                        <span>Xem Trang Chi Tiết</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-zinc-300">
-                <thead className="text-zinc-500 uppercase tracking-wider border-b border-zinc-800 text-[10px]">
-                  <tr>
-                    <th className="py-3 px-4">Tên Tuyệt Tác</th>
-                    <th className="py-3 px-4">Hãng</th>
-                    <th className="py-3 px-4">Mã Ref</th>
-                    <th className="py-3 px-4">Giá Niêm Yết</th>
-                    <th className="py-3 px-4">Bộ Máy Caliber</th>
-                    <th className="py-3 px-4">Complications</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-850">
-                  {ALL_WATCHES.map((w) => (
-                    <tr key={w.id} className="hover:bg-zinc-900/40">
-                      <td className="py-3 px-4 font-semibold text-zinc-100">{w.name}</td>
-                      <td className="py-3 px-4 text-[#d4af37] font-semibold">{w.brand}</td>
-                      <td className="py-3 px-4 font-mono text-zinc-400">{w.reference}</td>
-                      <td className="py-3 px-4 font-mono font-bold text-zinc-100">${formatPrice(w.price)}</td>
-                      <td className="py-3 px-4 font-mono text-zinc-500">{w.caliber}</td>
-                      <td className="py-3 px-4 text-zinc-400 text-[11px]">{w.complications.join(", ")}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
+
       </div>
     </div>
   );

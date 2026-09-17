@@ -17,6 +17,8 @@ export async function GET(
       );
     }
 
+    const localWatch = ALL_WATCHES.find((w) => w.id === id);
+
     // Try Supabase first
     if (isSupabaseConfigured) {
       const db = getServiceSupabase();
@@ -27,20 +29,29 @@ export async function GET(
         .single();
 
       if (!error && data) {
-        return NextResponse.json({ product: data, source: "supabase" });
+        const mergedProduct = {
+          ...(localWatch || {}),
+          ...data,
+          images: (data.images && data.images.length > 0) ? data.images : localWatch?.images || [],
+          specs: localWatch?.specs || {},
+          details: localWatch?.details || [],
+          caseSize: data.case_size || localWatch?.caseSize || "40mm",
+          caliber: data.caliber || localWatch?.caliber || "In-house Calibre",
+          complications: (data.complications && data.complications.length > 0) ? data.complications : localWatch?.complications || [],
+        };
+        return NextResponse.json({ product: mergedProduct, source: "supabase" });
       }
     }
 
     // Local fallback
-    const watch = ALL_WATCHES.find((w) => w.id === id);
-    if (!watch) {
+    if (!localWatch) {
       return NextResponse.json(
         { error: "Không tìm thấy sản phẩm." },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ product: watch, source: "local" });
+    return NextResponse.json({ product: localWatch, source: "local" });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(

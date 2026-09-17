@@ -110,16 +110,39 @@ export async function POST(req: NextRequest) {
         password,
       });
 
-      if (authError || !authData.user) {
+      if (authError || !authData?.user) {
+        const errMsg = authError?.message || "";
+        if (errMsg.toLowerCase().includes("email not confirmed") || errMsg.toLowerCase().includes("email_not_confirmed")) {
+          return NextResponse.json(
+            {
+              error: "Tài khoản của Quý khách chưa được kích hoạt qua email. Quý khách vui lòng kiểm tra hộp thư (inbox hoặc spam) và bấm vào liên kết xác thực để kích hoạt tài khoản chính chủ trước khi đăng nhập.",
+              requiresEmailConfirmation: true,
+            },
+            { status: 403 }
+          );
+        }
+
         return NextResponse.json(
           { error: "Tài khoản hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại." },
           { status: 401 }
         );
       }
 
-      const { data: profile } = await supabase
+      if (!authData.user.email_confirmed_at && !authData.user.confirmed_at) {
+        return NextResponse.json(
+          {
+            error: "Tài khoản của Quý khách chưa được kích hoạt qua email. Quý khách vui lòng kiểm tra hộp thư (inbox hoặc spam) và bấm vào liên kết xác thực để kích hoạt tài khoản chính chủ trước khi đăng nhập.",
+            requiresEmailConfirmation: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      const { getServiceSupabase } = await import("@/lib/supabase");
+      const adminClient = getServiceSupabase();
+      const { data: profile } = await adminClient
         .from("profiles")
-        .select("*")
+        .select("id, full_name, phone, avatar_url, role, created_at")
         .eq("id", authData.user.id)
         .single();
 
