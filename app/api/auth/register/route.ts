@@ -86,7 +86,10 @@ export async function POST(req: NextRequest) {
 
     if (isSupabaseConfigured) {
       const adminClient = getServiceSupabase();
-      const origin = req.nextUrl.origin;
+      // Resolve site origin dynamically, preferring public site url if deployed
+      const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+      const proto = req.headers.get("x-forwarded-proto") || "https";
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (host ? `${proto}://${host}` : req.nextUrl.origin);
 
       // Call Supabase auth.signUp to trigger confirmation email to the user's real email address
       const { data: signUpData, error: signUpError } = await adminClient.auth.signUp({
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
             phone: cleanPhone,
             role,
           },
-          emailRedirectTo: `${origin}/login?confirmed=true`,
+          emailRedirectTo: `${siteUrl}/auth/callback?next=/auth/confirmed`,
         },
       });
 

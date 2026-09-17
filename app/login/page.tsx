@@ -1,20 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail, Eye, EyeOff } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, Lock, Mail, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import ZorenbLogo from "@/components/ZorenbLogo";
 import { useAuth } from "@/context/AuthContext";
 
-export default function LoginPage() {
+function LoginFormContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmedMessage, setConfirmedMessage] = useState<string | null>(null);
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("confirmed") === "true") {
+      setConfirmedMessage("Chúc mừng bạn đã xác thực địa chỉ Email thành công! Vui lòng đăng nhập.");
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,13 +103,19 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {confirmedMessage && (
+            <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>{confirmedMessage}</span>
+            </div>
+          )}
+
           {errorMessage && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
               {errorMessage}
             </div>
           )}
 
-          {/* Quick Demo Acccount Buttons */}
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4 font-sans">
             <div className="space-y-1.5">
@@ -183,3 +197,12 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#070708]" />}>
+      <LoginFormContent />
+    </Suspense>
+  );
+}
+
