@@ -72,16 +72,63 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    // Also update order status in Supabase database to paid
+    // Persist paid order into Supabase database upon successful payment
     try {
       const { getServiceSupabase, isSupabaseConfigured } = await import("@/lib/supabase");
       if (isSupabaseConfigured && orderCode) {
         const db = getServiceSupabase();
         const codeStr = String(orderCode);
-        await db.from("orders").update({ status: "paid" }).eq("payos_order_id", codeStr);
+
+        // Check if order already recorded
+        const { data: existing } = await db
+          .from("orders")
+          .select("id")
+          .eq("payos_order_id", codeStr)
+          .single();
+
+        let insertedOrderId = existing?.id;
+
+        if (!existing) {
+          const { data: newOrd } = await db
+            .from("orders")
+            .insert({
+              payos_order_id: codeStr,
+              order_code: codeStr,
+              customer_name: typeof customerName === "string" && customerName.trim() ? customerName.trim() : "Quý Khách",
+              customer_email: to.toLowerCase().trim(),
+              status: "paid",
+              total_amount: totalAmount,
+              currency: "VND",
+            })
+            .select("id")
+            .single();
+
+          if (newOrd?.id) {
+            insertedOrderId = newOrd.id;
+          }
+        } else {
+          await db.from("orders").update({ status: "paid" }).eq("id", existing.id);
+        }
+
+        // Insert order items if new order
+        if (insertedOrderId && !existing && orderItems.length > 0) {
+          for (const item of orderItems) {
+            try {
+              await db.from("order_items").insert({
+                order_id: insertedOrderId,
+                product_id: "watch-item",
+                product_name: item.product_name,
+                quantity: item.quantity,
+                unit_price: item.price,
+              });
+            } catch {
+              // ignore
+            }
+          }
+        }
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error("Failed to record paid order:", e);
     }
 
     if (!result.success) {

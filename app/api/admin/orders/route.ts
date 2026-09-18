@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     const db = getServiceSupabase();
 
-    // Fetch all orders
+    // Fetch only successfully paid orders (paid, shipping, completed) — uncompleted/cancelled checkouts are not displayed
     const { data: orders, error } = await db
       .from("orders")
       .select(`
@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
           unit_price
         )
       `)
+      .in("status", ["paid", "shipping", "completed"])
       .order("created_at", { ascending: false });
 
     if (error) {

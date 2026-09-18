@@ -43,6 +43,23 @@ export async function POST(req: NextRequest) {
             order = fallback.data;
           }
 
+          if (!order) {
+            const { data: newOrd } = await db
+              .from("orders")
+              .insert({
+                payos_order_id: targetCode,
+                order_code: targetCode,
+                customer_name: (webhookData as any)?.accountName || "Khách Hàng Quý Tộc",
+                customer_email: "khachhang@fezorenb.com",
+                status: "paid",
+                total_amount: Number((webhookData as any)?.amount) || 0,
+                currency: "VND",
+              })
+              .select("*")
+              .single();
+            order = newOrd;
+          }
+
           if (order) {
             // Update order status to paid
             await db

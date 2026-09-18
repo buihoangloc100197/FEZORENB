@@ -24,7 +24,12 @@ import {
   Sparkles,
   Phone,
   Mail,
-  UserCheck
+  UserCheck,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+  ImageIcon
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
@@ -56,6 +61,21 @@ interface AdminUser {
   avatar_url?: string;
   role: "admin" | "staff" | "user";
   created_at: string;
+}
+
+interface AdminProduct {
+  id: string;
+  name: string;
+  brand: string;
+  reference: string;
+  price: number;
+  original_price?: number;
+  images: string[];
+  caliber?: string;
+  complications?: string[];
+  description?: string;
+  rating?: number;
+  created_at?: string;
 }
 
 interface Analytics {
@@ -96,6 +116,27 @@ export default function AdminDashboardPage() {
   const [newOrderAlert, setNewOrderAlert] = useState<AdminOrder | null>(null);
   const prevOrderCountRef = useRef<number | null>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string>("");
+
+  // Products state
+  const [productsList, setProductsList] = useState<AdminProduct[]>([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [productFormError, setProductFormError] = useState<string | null>(null);
+
+  const [productForm, setProductForm] = useState({
+    name: "",
+    brand: "Rolex",
+    reference: "",
+    price: "",
+    original_price: "",
+    caliber: "Calibre Tự Động Thụy Sĩ",
+    complications: "Perpetual, Chronometer",
+    description: "",
+    images: [] as string[],
+    imageUrlInput: "",
+  });
 
   // Search and filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,7 +179,35 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // 2. Fetch Orders & Analytics from API
+  // 1b. Web Speech API Voice Notification: "Xác nhận! Bạn có một đơn hàng mới!"
+  const playNewOrderVoiceAlert = () => {
+    try {
+      playLuxuryChime();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance("Xác nhận, bạn có một đơn hàng mới!");
+        utterance.lang = "vi-VN";
+        utterance.rate = 0.95;
+        utterance.pitch = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const viVoice = voices.find(
+          (v) => v.lang.toLowerCase().includes("vi") || v.lang.toLowerCase().includes("vn")
+        );
+        if (viVoice) {
+          utterance.voice = viVoice;
+        }
+
+        setTimeout(() => {
+          window.speechSynthesis.speak(utterance);
+        }, 400);
+      }
+    } catch (err) {
+      console.warn("Could not play voice alert:", err);
+    }
+  };
+
+  // 2. Fetch Orders & Analytics from API (Only paid / completed orders)
   const fetchOrdersData = async (isBackgroundPoll = false) => {
     try {
       if (!isBackgroundPoll) setIsOrdersLoading(true);
@@ -155,7 +224,7 @@ export default function AdminDashboardPage() {
           const newest = incomingOrders[0];
           setNewOrderAlert(newest);
           if (isSoundEnabled) {
-            playLuxuryChime();
+            playNewOrderVoiceAlert();
           }
         }
 
@@ -187,10 +256,147 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // 4. Fetch Products directly from Supabase Database
+  const fetchProductsData = async () => {
+    try {
+      setIsProductsLoading(true);
+      const res = await fetch("/api/admin/products");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.products && Array.isArray(data.products)) {
+          setProductsList(data.products);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setIsProductsLoading(false);
+    }
+  };
+
+  // 5. Handle Create New Product
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProductFormError(null);
+
+    if (!productForm.name.trim()) {
+      setProductFormError("Vui lòng nhập tên sản phẩm.");
+      return;
+    }
+    if (!productForm.price || Number(productForm.price) <= 0) {
+      setProductFormError("Vui lòng nhập giá bán hợp lệ lớn hơn 0.");
+      return;
+    }
+
+    try {
+      setIsSubmittingProduct(true);
+      const res = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: productForm.name.trim(),
+          brand: productForm.brand,
+          reference: productForm.reference.trim(),
+          price: Number(productForm.price),
+          original_price: productForm.original_price ? Number(productForm.original_price) : null,
+          caliber: productForm.caliber.trim(),
+          complications: productForm.complications,
+          description: productForm.description.trim(),
+          images: productForm.images.length > 0 ? productForm.images : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Không thể lưu sản phẩm.");
+      }
+
+      if (data.product) {
+        setProductsList((prev) => [data.product, ...prev]);
+      }
+
+      setProductForm({
+        name: "",
+        brand: "Rolex",
+        reference: "",
+        price: "",
+        original_price: "",
+        caliber: "Calibre Tự Động Thụy Sĩ",
+        complications: "Perpetual, Chronometer",
+        description: "",
+        images: [],
+        imageUrlInput: "",
+      });
+      setIsAddProductModalOpen(false);
+      alert(`Đã thêm sản phẩm "${productForm.name}" thành công vào Cơ Sở Dữ Liệu Supabase!`);
+    } catch (err: any) {
+      setProductFormError(err.message || "Đã xảy ra lỗi khi tạo sản phẩm.");
+    } finally {
+      setIsSubmittingProduct(false);
+    }
+  };
+
+  // 6. Handle Delete Product
+  const handleDeleteProduct = async (id: string, name: string) => {
+    if (!confirm(`Quý khách có chắc chắn muốn xóa sản phẩm "${name}" khỏi cơ sở dữ liệu dự án?`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/products?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProductsList((prev) => prev.filter((p) => p.id !== id));
+        alert(`Đã xóa thành công sản phẩm "${name}".`);
+      } else {
+        alert(data.error || "Lỗi khi xóa sản phẩm.");
+      }
+    } catch (err: any) {
+      alert("Lỗi kết nối: " + err.message);
+    }
+  };
+
+  // 7. Handle Upload Image to Supabase Storage
+  const handleUploadImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const fd = new FormData();
+      fd.append("image", file);
+      const tempId = productForm.name
+        ? productForm.name.toLowerCase().replace(/[^a-z0-9]/g, "-")
+        : "custom-" + Date.now();
+      fd.append("productId", tempId);
+
+      const res = await fetch("/api/admin/upload-product-image", {
+        method: "POST",
+        body: fd,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.imageUrl) {
+        setProductForm((prev) => ({
+          ...prev,
+          images: [...prev.images, data.imageUrl],
+        }));
+      } else {
+        alert(data.error || "Lỗi tải ảnh lên Supabase Storage.");
+      }
+    } catch (err: any) {
+      alert("Lỗi upload ảnh: " + err.message);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   // Initial load and polling (every 6 seconds for counter staff alerts)
   useEffect(() => {
     if (isAdmin || isStaff) {
       fetchOrdersData();
+      fetchProductsData();
       const interval = setInterval(() => {
         fetchOrdersData(true);
       }, 6000);
@@ -201,6 +407,9 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (activeTab === "staff" && isAdmin) {
       fetchUsersData();
+    }
+    if (activeTab === "products") {
+      fetchProductsData();
     }
   }, [activeTab, isAdmin]);
 
@@ -392,12 +601,12 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
-              onClick={playLuxuryChime}
+              onClick={playNewOrderVoiceAlert}
               className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 hover:text-[#d4af37] flex items-center gap-1.5 transition-colors"
-              title="Bấm thử âm thanh chuông báo"
+              title="Bấm thử âm thanh thông báo giọng nói quầy trực"
             >
-              <Bell className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Thử Chuông</span>
+              <Volume2 className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Thử Giọng Báo Đơn</span>
             </button>
 
             <button
@@ -442,7 +651,7 @@ export default function AdminDashboardPage() {
               className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 whitespace-nowrap transition-all ${
                 activeTab === "staff"
                   ? "bg-gradient-to-r from-amber-400 to-[#d4af37] text-zinc-950 shadow-lg shadow-gold-400/20"
-                  : "text-zinc-400 hover:text-zinc-100"
+                : "text-zinc-400 hover:text-zinc-100"
               }`}
             >
               <Users className="w-4 h-4" />
@@ -459,7 +668,7 @@ export default function AdminDashboardPage() {
             }`}
           >
             <Package className="w-4 h-4" />
-            <span>Sản Phẩm &amp; Ảnh Storage ({ALL_WATCHES.length})</span>
+            <span>Sản Phẩm &amp; Ảnh Storage ({productsList.length > 0 ? productsList.length : ALL_WATCHES.length})</span>
           </button>
         </div>
 
@@ -480,7 +689,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                {["all", "pending", "paid", "shipping", "completed", "cancelled"].map((st) => (
+                {["all", "paid", "shipping", "completed"].map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
@@ -490,7 +699,7 @@ export default function AdminDashboardPage() {
                         : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    {st === "all" ? "Tất Cả" : st === "pending" ? "Chờ Xử Lý" : st === "paid" ? "Đã Thu Tiền" : st === "shipping" ? "Đang Giao" : st === "completed" ? "Hoàn Thành" : "Đã Hủy"}
+                    {st === "all" ? "Tất Cả Đã Thanh Toán" : st === "paid" ? "Đã Thu Tiền" : st === "shipping" ? "Đang Giao" : "Hoàn Thành"}
                   </button>
                 ))}
               </div>
@@ -849,47 +1058,348 @@ export default function AdminDashboardPage() {
                     <span>Bộ Sưu Tập Đồng Hồ &amp; Liên Kết Ảnh Supabase Storage</span>
                   </h2>
                   <p className="text-xs text-zinc-400 font-light mt-0.5">
-                    100% hình ảnh đã được liên kết chính xác với bucket <code className="text-[#d4af37]">anhsanphamzorenb</code> và đồng bộ thông số chi tiết.
+                    Dữ liệu được lưu trữ trực tiếp trong cơ sở dữ liệu Supabase và bucket hình ảnh <code className="text-[#d4af37]">anhsanphamzorenb</code>.
                   </p>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    onClick={fetchProductsData}
+                    className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors"
+                    title="Cập nhật danh sách từ database"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isProductsLoading ? "animate-spin text-[#d4af37]" : ""}`} />
+                    <span>Làm mới</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setProductFormError(null);
+                      setIsAddProductModalOpen(true);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 font-bold text-xs uppercase tracking-wider shadow-lg shadow-gold-400/20 hover:scale-[1.02] transition-all flex items-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Thêm Sản Phẩm Mới</span>
+                  </button>
                 </div>
               </div>
 
+              {/* Products Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {ALL_WATCHES.map((w) => (
-                  <div
-                    key={w.id}
-                    className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3.5 hover:border-[#d4af37]/50 transition-all"
-                  >
-                    <div className="relative w-16 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-zinc-700/50">
-                      <Image
-                        src={w.images[0]}
-                        alt={w.name}
-                        fill
-                        className="object-cover"
-                      />
+                {(productsList.length > 0 ? productsList : ALL_WATCHES).map((w) => {
+                  const firstImg =
+                    w.images && w.images.length > 0
+                      ? w.images[0]
+                      : "https://ibkchkpqoriinoofzmpu.supabase.co/storage/v1/object/public/anhsanphamzorenb/watches/rolex-datejust-ai-special-50k/image-1.jpg";
+
+                  return (
+                    <div
+                      key={w.id}
+                      className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3.5 hover:border-[#d4af37]/50 transition-all group relative"
+                    >
+                      <div className="relative w-16 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0 border border-zinc-700/50">
+                        <Image
+                          src={firstImg}
+                          alt={w.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#d4af37] block truncate">
+                          {w.brand} • Ref. {w.reference}
+                        </span>
+                        <h3 className="text-xs font-semibold text-zinc-100 truncate mt-0.5" title={w.name}>
+                          {w.name}
+                        </h3>
+                        <p className="text-xs font-mono font-bold text-emerald-400 mt-1">
+                          {formatPrice(w.price)} ₫
+                        </p>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <Link
+                            href={`/products/${w.id}`}
+                            target="_blank"
+                            className="text-[10px] text-zinc-400 hover:text-[#d4af37] inline-flex items-center gap-1 transition-colors"
+                          >
+                            <span>Xem Trang Chi Tiết</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </Link>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteProduct(w.id, w.name)}
+                              className="text-[10px] text-rose-400/80 hover:text-rose-300 inline-flex items-center gap-1 transition-colors ml-auto"
+                              title="Xóa sản phẩm này khỏi database"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Xóa</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-[#d4af37] block truncate">
-                        {w.brand} • Ref. {w.reference}
-                      </span>
-                      <h3 className="text-xs font-semibold text-zinc-100 truncate mt-0.5">
-                        {w.name}
-                      </h3>
-                      <p className="text-xs font-mono font-bold text-emerald-400 mt-1">
-                        ${w.price.toLocaleString()} ≈ {((w.price * 25400) / 1000000).toFixed(0)} Tr ₫
-                      </p>
-                      <Link
-                        href={`/products/${w.id}`}
-                        target="_blank"
-                        className="text-[10px] text-zinc-400 hover:text-white inline-flex items-center gap-1 mt-1"
-                      >
-                        <span>Xem Trang Chi Tiết</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MODAL: THÊM SẢN PHẨM MỚI VÀO CƠ SỞ DỮ LIỆU THẬT ── */}
+        {isAddProductModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="relative w-full max-w-2xl bg-[#101015] border border-zinc-700/80 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl my-8">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gold-400/15 border border-[#d4af37]/40 text-[#d4af37] flex items-center justify-center">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold uppercase tracking-wider text-zinc-100">
+                      Thêm Sản Phẩm Mới Vào Database
+                    </h2>
+                    <p className="text-[11px] text-zinc-400 font-light">
+                      Nhập thông tin kiệt tác đồng hồ để lưu trực tiếp vào cơ sở dữ liệu Supabase của dự án.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsAddProductModalOpen(false)}
+                  className="w-8 h-8 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Error Banner */}
+              {productFormError && (
+                <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300">
+                  {productFormError}
+                </div>
+              )}
+
+              {/* Form Content */}
+              <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Tên sản phẩm */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Tên Đồng Hồ <span className="text-[#d4af37]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ví dụ: Rolex Submariner Date 41mm 'Starbucks'"
+                      value={productForm.name}
+                      onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Thương hiệu */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Thương Hiệu <span className="text-[#d4af37]">*</span>
+                    </label>
+                    <select
+                      value={productForm.brand}
+                      onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 focus:outline-none focus:border-[#d4af37]"
+                    >
+                      <option value="Rolex">Rolex</option>
+                      <option value="Patek Philippe">Patek Philippe</option>
+                      <option value="Audemars Piguet">Audemars Piguet</option>
+                      <option value="Vacheron Constantin">Vacheron Constantin</option>
+                      <option value="A. Lange & Söhne">A. Lange & Söhne</option>
+                      <option value="Richard Mille">Richard Mille</option>
+                      <option value="Jaeger-LeCoultre">Jaeger-LeCoultre</option>
+                      <option value="Cartier">Cartier</option>
+                      <option value="Omega">Omega</option>
+                      <option value="IWC Schaffhausen">IWC Schaffhausen</option>
+                    </select>
+                  </div>
+
+                  {/* Mã Reference */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Mã Reference
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ví dụ: 126610LV hoặc REF-001"
+                      value={productForm.reference}
+                      onChange={(e) => setProductForm({ ...productForm, reference: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Giá bán (VND) */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Giá Bán (VNĐ) <span className="text-[#d4af37]">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1000"
+                      placeholder="Ví dụ: 50000 hoặc 450000000"
+                      value={productForm.price}
+                      onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 font-mono focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Giá niêm yết gốc (VND) */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Giá Gốc Niêm Yết (VNĐ - Tùy chọn)
+                    </label>
+                    <input
+                      type="number"
+                      min="1000"
+                      placeholder="Ví dụ: 90000 hoặc 520000000"
+                      value={productForm.original_price}
+                      onChange={(e) => setProductForm({ ...productForm, original_price: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 font-mono focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Bộ máy Caliber */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Bộ Máy / Caliber
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ví dụ: Calibre 3235 Tự Động 70h cót"
+                      value={productForm.caliber}
+                      onChange={(e) => setProductForm({ ...productForm, caliber: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Tính năng / Complications */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Tính Năng (Phân cách bằng dấu phẩy)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ví dụ: Chronometer, Lịch Ngày, Chống Nước 300m"
+                      value={productForm.complications}
+                      onChange={(e) => setProductForm({ ...productForm, complications: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Mô tả sản phẩm */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-300 block">
+                      Mô Tả Sản Phẩm
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Nhập mô tả chi tiết về xuất xứ, vật liệu vàng khối, kính sapphire, câu chuyện chế tác..."
+                      value={productForm.description}
+                      onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                      className="w-full bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Quản lý Hình Ảnh */}
+                  <div className="space-y-2.5 sm:col-span-2 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] uppercase tracking-wider font-semibold text-zinc-200 flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" />
+                        <span>Hình Ảnh Sản Phẩm ({productForm.images.length})</span>
+                      </label>
+
+                      {/* Nút Upload trực tiếp lên Supabase Storage */}
+                      <label className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-[#d4af37] text-zinc-300 hover:text-zinc-950 font-semibold cursor-pointer transition-all inline-flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isUploadingImage ? "Đang Tải Lên..." : "Tải File Lên Storage"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadImageFile}
+                          disabled={isUploadingImage}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Dán link URL ảnh */}
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="Hoặc dán URL hình ảnh (Supabase / HTTPS)..."
+                        value={productForm.imageUrlInput}
+                        onChange={(e) => setProductForm({ ...productForm, imageUrlInput: e.target.value })}
+                        className="flex-1 bg-[#16161e] border border-zinc-700/80 rounded-xl px-3.5 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-[#d4af37]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (productForm.imageUrlInput.trim()) {
+                            setProductForm({
+                              ...productForm,
+                              images: [...productForm.images, productForm.imageUrlInput.trim()],
+                              imageUrlInput: "",
+                            });
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold"
+                      >
+                        Thêm
+                      </button>
+                    </div>
+
+                    {/* Thumbnails preview */}
+                    {productForm.images.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {productForm.images.map((imgUrl, idx) => (
+                          <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-zinc-700 bg-black group">
+                            <Image src={imgUrl} alt={`Preview ${idx}`} fill className="object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProductForm({
+                                  ...productForm,
+                                  images: productForm.images.filter((_, i) => i !== idx),
+                                });
+                              }}
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition-opacity"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Submit Actions */}
+                <div className="pt-4 border-t border-zinc-800 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddProductModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingProduct}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f7e4a4] to-[#a37d1d] text-zinc-950 font-bold uppercase tracking-wider shadow-lg shadow-gold-400/20 hover:scale-[1.01] transition-all flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{isSubmittingProduct ? "Đang Lưu Vào Database..." : "Lưu Sản Phẩm Vào Database"}</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
