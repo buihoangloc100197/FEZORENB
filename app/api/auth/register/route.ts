@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Existing user is NOT confirmed yet. Update user details and resend confirmation
+        // Existing user is NOT confirmed yet. Update user details
         userId = existingUser.id;
         await adminClient.auth.admin.updateUserById(userId, {
           password: trimmedPassword,
@@ -118,46 +118,10 @@ export async function POST(req: NextRequest) {
             role,
           },
         });
-
-        // Trigger Supabase resend
-        const { error: resendErr } = await supabase.auth.resend({
-          type: "signup",
-          email: cleanEmail,
-          options: { emailRedirectTo: redirectTo },
-        });
-        if (!resendErr) {
-          verificationSent = true;
-        }
-      } else {
-        // Sign up with Supabase client to trigger built-in confirmation email sending
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: trimmedPassword,
-          options: {
-            data: {
-              full_name: cleanFullName,
-              phone: cleanPhone,
-              role,
-            },
-            emailRedirectTo: redirectTo,
-          },
-        });
-
-        if (signUpError) {
-          return NextResponse.json(
-            { error: "Lỗi đăng ký tài khoản: " + signUpError.message },
-            { status: 400 }
-          );
-        }
-
-        if (signUpData?.user) {
-          userId = signUpData.user.id;
-          verificationSent = true;
-        }
       }
 
-      // 2. Generate Supabase direct action link for immediate UI fallback
-      const { data: linkData } = await adminClient.auth.admin.generateLink({
+      // 2. Generate Supabase action link with admin client (bypasses Supabase built-in SMTP rate limit!)
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
         type: "signup",
         email: cleanEmail,
         password: trimmedPassword,
@@ -171,8 +135,40 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      if (linkData?.user && !userId) {
-        userId = linkData.user.id;
+      if (linkError) {
+        // Fallback: If signup link fails because user exists, try magiclink
+        const { data: fallbackLink, error: fallbackErr } = await adminClient.auth.admin.generateLink({
+          type: "magiclink",
+          email: cleanEmail,
+          options: {
+            redirectTo,
+          },
+        });
+
+        if (fallbackErr || !fallbackLink) {
+          return NextResponse.json(
+            { error: "Lỗi tạo tài khoản: " + linkError.message },
+            { status: 400 }
+          );
+        }
+
+        if (fallbackLink.user?.id) {
+          userId = fallbackLink.user.id;
+        }
+        if (fallbackLink.properties?.hashed_token) {
+          directLink = `${siteUrl}/auth/callback?token_hash=${fallbackLink.properties.hashed_token}&type=magiclink&next=/auth/confirmed`;
+        } else if (fallbackLink.properties?.action_link) {
+          directLink = fallbackLink.properties.action_link;
+        }
+      } else {
+        if (linkData?.user?.id) {
+          userId = linkData.user.id;
+        }
+        if (linkData?.properties?.hashed_token) {
+          directLink = `${siteUrl}/auth/callback?token_hash=${linkData.properties.hashed_token}&type=signup&next=/auth/confirmed`;
+        } else if (linkData?.properties?.action_link) {
+          directLink = linkData.properties.action_link;
+        }
       }
 
       // 3. Save / update profile in public.profiles table
@@ -184,12 +180,7 @@ export async function POST(req: NextRequest) {
         role,
       });
 
-      // 4. Capture verification link
-      if (linkData?.properties?.action_link) {
-        directLink = linkData.properties.action_link;
-      }
-
-      // 5. Send verification email via secondary channel as well
+      // 4. Try sending verification email directly via SMTP / Resend
       if (directLink) {
         try {
           const { sendVerificationEmail } = await import("@/lib/email-verification");
@@ -201,9 +192,20 @@ export async function POST(req: NextRequest) {
           if (emailRes.success) {
             verificationSent = true;
           }
-        } catch {
-          // ignore secondary mailer if Supabase mailer already handled it
+        } catch (emailErr) {
+          console.warn("Secondary mailer notice:", emailErr);
         }
+      }
+
+      // 5. Try Supabase built-in mailer in background, safely ignoring any rate limit error
+      try {
+        await supabase.auth.resend({
+          type: "signup",
+          email: cleanEmail,
+          options: { emailRedirectTo: redirectTo },
+        });
+      } catch {
+        // Built-in mailer rate limit exceeded or disabled, ignore gracefully
       }
 
       const newUser = {
@@ -224,8 +226,8 @@ export async function POST(req: NextRequest) {
         directLink,
         mailNote,
         message: verificationSent
-          ? `Đăng ký thành công! Hệ thống ZORENB đã gửi email xác thực đến ${cleanEmail}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) và bấm vào liên kết xác thực để kích hoạt tài khoản chính chủ trước khi đăng nhập.`
-          : `Đăng ký thành công! Để kích hoạt tài khoản ngay vào cơ sở dữ liệu dự án ZORENB, Quý khách vui lòng bấm vào nút kích hoạt bên dưới.`,
+          ? `Đăng ký thành công! Hệ thống ZORENB đã gửi email xác thực đến ${cleanEmail}. Quý khách vui lòng kiểm tra hộp thư (inbox/spam) hoặc bấm nút kích hoạt trực tiếp bên dưới để vào hệ thống ngay.`
+          : `Đăng ký thành công! Để kích hoạt tài khoản ngay vào cơ sở dữ liệu dự án ZORENB, Quý khách vui lòng bấm vào nút kích hoạt trực tiếp bên dưới.`,
         user: newUser,
       });
     }

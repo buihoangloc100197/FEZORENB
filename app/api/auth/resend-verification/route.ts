@@ -61,7 +61,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const directLink = linkData.properties.action_link;
+    const hashedToken = linkData.properties?.hashed_token;
+    const directLink = hashedToken
+      ? `${siteUrl}/auth/callback?token_hash=${hashedToken}&type=magiclink&next=/auth/confirmed`
+      : linkData.properties.action_link;
     const customerName = user.user_metadata?.full_name || email.split("@")[0].toUpperCase();
 
     // 1. Send via Supabase Auth built-in mailer
